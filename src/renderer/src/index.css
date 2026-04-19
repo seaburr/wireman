@@ -514,8 +514,8 @@ body, #root {
 /* ── Splice Node ─────────────────────────────────── */
 
 .splice-node {
-  width: 48px;
-  height: 48px;
+  width: 32px;
+  height: 32px;
   position: relative;
   cursor: pointer;
 }
@@ -537,7 +537,7 @@ body, #root {
 }
 
 .splice-node__label {
-  font-size: 9px;
+  font-size: 7px;
   font-weight: 700;
   color: #d69e2e;
   font-family: monospace;
@@ -858,6 +858,11 @@ body, #root {
   padding: 0 12px;
   height: 36px;
   flex-shrink: 0;
+  gap: 8px;
+}
+
+.bom-btn--export {
+  margin-left: auto;
 }
 
 .bom-bar__toggle {
@@ -998,3 +1003,8 @@ body, #root {
   background: var(--bg-panel) !important;
   border: 1px solid var(--border) !important;
 }
+
+.react-flow__attribution {
+  display: none !important;
+}
+

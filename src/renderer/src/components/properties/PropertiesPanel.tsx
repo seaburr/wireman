@@ -92,7 +92,7 @@ export function PropertiesPanel() {
     selectedId, selectedType,
     updateWire, updateConnector, updateCable, updateSplice, updateGround,
     removeWire, removeConnector, removeCable, removeSplice, removeGround,
-    assignWireToCable
+    assignWireToCable, toggleCableCollapsed
   } = useHarnessStore(
     useShallow((s) => ({
       connectors: s.connectors, wires: s.wires, cables: s.cables,
@@ -102,7 +102,7 @@ export function PropertiesPanel() {
       updateCable: s.updateCable, updateSplice: s.updateSplice, updateGround: s.updateGround,
       removeWire: s.removeWire, removeConnector: s.removeConnector,
       removeCable: s.removeCable, removeSplice: s.removeSplice, removeGround: s.removeGround,
-      assignWireToCable: s.assignWireToCable
+      assignWireToCable: s.assignWireToCable, toggleCableCollapsed: s.toggleCableCollapsed
     }))
   )
 
@@ -338,6 +338,17 @@ export function PropertiesPanel() {
           value={cable.lengthInches}
           onChange={(e) => updateCable(cable.id, { lengthInches: parseFloat(e.target.value) || 0 })} />
 
+        <label className="properties-panel__label">Cable Color</label>
+        <div className="color-picker">
+          {(Object.keys(WIRE_COLORS) as WireColor[]).map((color) => (
+            <button key={color}
+              className={`color-swatch${cable.color === WIRE_COLORS[color] ? ' color-swatch--active' : ''}`}
+              style={{ background: WIRE_COLORS[color] }} title={color}
+              onClick={() => updateCable(cable.id, { color: cable.color === WIRE_COLORS[color] ? undefined : WIRE_COLORS[color] })} />
+          ))}
+        </div>
+        <p className="properties-panel__hint">Cable color overrides individual wire colors on the canvas.</p>
+
         <div className="properties-panel__info-block">
           <div className="properties-panel__info-row">
             <span>Wires in bundle</span><span>{cableWires.length}</span>
@@ -360,6 +371,22 @@ export function PropertiesPanel() {
               </div>
             ))}
           </div>
+        )}
+
+        <button
+          className="properties-panel__btn properties-panel__btn--secondary"
+          onClick={() => toggleCableCollapsed(cable.id)}
+          title={cable.collapsed
+            ? 'Show individual wire edges on the canvas'
+            : 'Collapse wires into a single cable edge on the canvas'}
+        >
+          {cable.collapsed ? '⊞ Expand on Canvas' : '⊟ Collapse on Canvas'}
+        </button>
+
+        {cable.collapsed && cableWires.length === 0 && (
+          <p className="properties-panel__hint">
+            No wires assigned yet — expand and assign wires first.
+          </p>
         )}
 
         <p className="properties-panel__hint">

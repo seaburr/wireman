@@ -19,19 +19,23 @@ export type WireColor = keyof typeof WIRE_COLORS
 /** 2-D grid of 1-based pin numbers. null = empty cell (no pin). */
 export type PinLayout = (number | null)[][]
 
+// All connectors use a 2-column (left / right) layout for the schematic diagram.
+// Left column pins get left-edge handles; right column pins get right-edge handles.
+// Numbering follows the physical connector face; the diagram layout groups the
+// first half of pins on the left and the second half on the right.
 const LAYOUTS: Record<string, PinLayout> = {
   // Deutsch DTM series
-  'DTM-2': [[1, 2]],
-  'DTM-4': [[1, 2], [3, 4]],
-  'DTM-6': [[1, 2, 3], [4, 5, 6]],
-  'DTM-8': [[1, 2, 3, 4], [5, 6, 7, 8]],
-  'DTM-12': [[1, 2, 3, 4], [5, 6, 7, 8], [9, 10, 11, 12]],
+  'DTM-2':  [[1, 2]],
+  'DTM-4':  [[1, 2], [3, 4]],
+  'DTM-6':  [[1, 4], [2, 5], [3, 6]],
+  'DTM-8':  [[1, 5], [2, 6], [3, 7], [4, 8]],
+  'DTM-12': [[1, 7], [2, 8], [3, 9], [4, 10], [5, 11], [6, 12]],
   // Deutsch DT series
-  'DT-2': [[1, 2]],
-  'DT-4': [[1, 2], [3, 4]],
-  'DT-6': [[1, 2, 3], [4, 5, 6]],
-  'DT-8': [[1, 2, 3, 4], [5, 6, 7, 8]],
-  'DT-12': [[1, 2, 3, 4], [5, 6, 7, 8], [9, 10, 11, 12]],
+  'DT-2':  [[1, 2]],
+  'DT-4':  [[1, 2], [3, 4]],
+  'DT-6':  [[1, 4], [2, 5], [3, 6]],
+  'DT-8':  [[1, 5], [2, 6], [3, 7], [4, 8]],
+  'DT-12': [[1, 7], [2, 8], [3, 9], [4, 10], [5, 11], [6, 12]],
 }
 
 export function getPinLayout(model: string, terminalCount: number): PinLayout {
@@ -91,6 +95,10 @@ export interface ConnectorNode extends Record<string, unknown> {
 export interface Cable {
   id: string
   name: string
+  /** Optional hex color for the cable sheath. Tints all wire edges in this bundle. */
+  color?: string
+  /** When true the canvas shows one thick cable edge instead of individual wire edges. */
+  collapsed?: boolean
   lengthInches: number
   wireIds: string[]
 }
@@ -160,7 +168,7 @@ export function createWire(name: string): Wire {
 }
 
 export function createCable(name: string): Cable {
-  return { id: nanoid(8), name, lengthInches: 24, wireIds: [] }
+  return { id: nanoid(8), name, collapsed: true, lengthInches: 24, wireIds: [] }
 }
 
 export function createSplice(position: { x: number; y: number }): SpliceNode {
@@ -248,22 +256,18 @@ export function generateBom(
       totalCostUsd: grounds.length * 0.35, category: 'splice' })
   }
 
-  // Wires — group by (awg, cableId or 'loose')
-  const wireGroups = new Map<string, { awg: string; totalInches: number; label: string }>()
+  // Wires — one BOM line per AWG gauge, summing total feet across the whole harness
+  const wireGroups = new Map<string, { awg: string; totalInches: number }>()
   for (const w of wires) {
     const cable = w.cableId ? cables.find((c) => c.id === w.cableId) : null
     const len = cable ? cable.lengthInches : w.lengthInches
-    const key = w.cableId ? `cable:${w.cableId}:${w.awg}` : `loose:${w.awg}`
-    const label = cable
-      ? `Wire (${w.awg} AWG) – ${cable.name}`
-      : `Wire – ${w.awg} AWG`
-    if (!wireGroups.has(key)) wireGroups.set(key, { awg: w.awg, totalInches: 0, label })
-    wireGroups.get(key)!.totalInches += len
+    if (!wireGroups.has(w.awg)) wireGroups.set(w.awg, { awg: w.awg, totalInches: 0 })
+    wireGroups.get(w.awg)!.totalInches += len
   }
-  for (const { awg, totalInches, label } of wireGroups.values()) {
+  for (const { awg, totalInches } of wireGroups.values()) {
     const feet = totalInches / 12
     const unitCost = WIRE_COST_PER_FOOT[awg] ?? 0.09
-    lines.push({ description: label, partNumber: `WIRE-${awg}AWG`,
+    lines.push({ description: `Wire – ${awg} AWG`, partNumber: `WIRE-${awg}AWG`,
       qty: Math.ceil(feet * 10) / 10, unitCostUsd: unitCost,
       totalCostUsd: feet * unitCost, category: 'wire' })
   }

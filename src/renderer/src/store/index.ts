@@ -77,6 +77,8 @@ interface HarnessState {
   updateCable: (id: string, patch: Partial<Omit<Cable, 'id'>>) => void
   removeCable: (id: string) => void
   assignWireToCable: (wireId: string, cableId: string | null) => void
+  /** Toggle collapsed view — not pushed to undo history (view-only state). */
+  toggleCableCollapsed: (id: string) => void
 
   // Splice actions
   addSplice: (position?: { x: number; y: number }) => void
@@ -181,9 +183,12 @@ export const useHarnessStore = create<HarnessState>((set, get) => {
     const connector = get().connectors.find((c) => c.id === id)
     if (!connector) return 'Connector not found.'
 
-    const connectedCount = connector.terminals.filter((t) => t.wireId !== null).length
-    if (terminalCount < connectedCount) {
-      return `Cannot change to ${terminalCount}-pin — ${connectedCount} pin(s) still have wires. Disconnect them first.`
+    // Check how many of the terminals that WOULD BE REMOVED still have wires.
+    // (A shrink from 4→2 with wires on pins 3 & 4 must be rejected even though
+    // connectedCount == terminalCount.)
+    const wouldLose = connector.terminals.slice(terminalCount).filter((t) => t.wireId !== null).length
+    if (wouldLose > 0) {
+      return `Cannot change to ${terminalCount}-pin — ${wouldLose} pin(s) that would be removed still have wires. Disconnect them first.`
     }
 
     // Keep existing terminals (IDs + wire refs intact), pad with new empty ones
@@ -365,6 +370,13 @@ export const useHarnessStore = create<HarnessState>((set, get) => {
         if (ca.id === cableId) return { ...ca, wireIds: [...ca.wireIds, wireId] }
         return ca
       })
+    }))
+  },
+
+  toggleCableCollapsed: (id) => {
+    // Not pushed to history — collapse is a transient view state, not harness data
+    set((s) => ({
+      cables: s.cables.map((ca) => ca.id === id ? { ...ca, collapsed: !ca.collapsed } : ca)
     }))
   },
 

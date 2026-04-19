@@ -33,8 +33,16 @@ function createWindow(): void {
 
 // ── File I/O IPC ─────────────────────────────────────────────────────────────
 
+function toKebab(s: string): string {
+  return (s ?? '').trim().toLowerCase()
+    .replace(/\s+/g, '-')
+    .replace(/[^a-z0-9-]/g, '')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '') || 'harness'
+}
+
 ipcMain.handle('save-harness', async (_, json: string, projectName: string) => {
-  const safeName = (projectName ?? 'harness').replace(/[^a-z0-9_\- ]/gi, '_').trim() || 'harness'
+  const safeName = toKebab(projectName)
   const { canceled, filePath } = await dialog.showSaveDialog({
     title: 'Save Harness',
     defaultPath: `${safeName}.wireman`,
@@ -42,6 +50,18 @@ ipcMain.handle('save-harness', async (_, json: string, projectName: string) => {
   })
   if (canceled || !filePath) return { ok: false }
   writeFileSync(filePath, json, 'utf-8')
+  return { ok: true, filePath }
+})
+
+ipcMain.handle('export-image', async (_, base64: string, projectName: string) => {
+  const safeName = toKebab(projectName)
+  const { canceled, filePath } = await dialog.showSaveDialog({
+    title: 'Export Schematic Image',
+    defaultPath: `${safeName}-schematic.png`,
+    filters: [{ name: 'PNG Image', extensions: ['png'] }]
+  })
+  if (canceled || !filePath) return { ok: false }
+  writeFileSync(filePath, Buffer.from(base64, 'base64'))
   return { ok: true, filePath }
 })
 

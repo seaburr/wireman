@@ -1,0 +1,242 @@
+{
+  "version": 1,
+  "projectName": "Demo Harness",
+  "connectors": [
+    {
+      "id": "HYcRWxFn",
+      "name": "A",
+      "model": "DTM-6",
+      "costUsd": 6.5,
+      "bootModel": "HTAT-16-6",
+      "bootCostUsd": 0.2,
+      "terminals": [
+        {
+          "id": "-Awcslcf",
+          "name": "Pin 1",
+          "connectorId": "HYcRWxFn",
+          "wireId": "m7v_7nn8"
+        },
+        {
+          "id": "OSXLtH47",
+          "name": "Pin 2",
+          "connectorId": "HYcRWxFn",
+          "wireId": "z54L1ATo"
+        },
+        {
+          "id": "su-MpG0h",
+          "name": "Pin 3",
+          "connectorId": "HYcRWxFn",
+          "wireId": "R9n27xiL"
+        },
+        {
+          "id": "-TbQl-DR",
+          "name": "Pin 4",
+          "connectorId": "HYcRWxFn",
+          "wireId": "KZrG3bTS"
+        },
+        {
+          "id": "LPUC7ZvM",
+          "name": "Pin 5",
+          "connectorId": "HYcRWxFn",
+          "wireId": "DrNCdC-L"
+        },
+        {
+          "id": "pcKlIrfY",
+          "name": "Pin 6",
+          "connectorId": "HYcRWxFn",
+          "wireId": "GNl_Eh-h"
+        }
+      ],
+      "position": {
+        "x": 110.99409557341514,
+        "y": -182.83385221383517
+      }
+    },
+    {
+      "id": "1ta-TYVL",
+      "name": "B",
+      "model": "DTM-2",
+      "costUsd": 3.5,
+      "bootModel": "HTAT-16-2",
+      "bootCostUsd": 0.15,
+      "terminals": [
+        {
+          "id": "HJE9dK5e",
+          "name": "Pin 1",
+          "connectorId": "1ta-TYVL",
+          "wireId": "m7v_7nn8"
+        },
+        {
+          "id": "AsL5S7jl",
+          "name": "Pin 2",
+          "connectorId": "1ta-TYVL",
+          "wireId": "R9n27xiL"
+        }
+      ],
+      "position": {
+        "x": -118.06332638264884,
+        "y": 555.7231319676948
+      }
+    },
+    {
+      "id": "Ly0Swkcy",
+      "name": "C",
+      "model": "DTM-2",
+      "costUsd": 3.5,
+      "bootModel": "HTAT-16-2",
+      "bootCostUsd": 0.15,
+      "terminals": [
+        {
+          "id": "1ltmZv9X",
+          "name": "Pin 1",
+          "connectorId": "Ly0Swkcy",
+          "wireId": "KZrG3bTS"
+        },
+        {
+          "id": "txsXVv5P",
+          "name": "Pin 2",
+          "connectorId": "Ly0Swkcy",
+          "wireId": "z54L1ATo"
+        }
+      ],
+      "position": {
+        "x": 490.2035291133338,
+        "y": 649.7457412888326
+      }
+    },
+    {
+      "id": "WK8Zs2kp",
+      "name": "D",
+      "model": "DTM-2",
+      "costUsd": 3.5,
+      "bootModel": "HTAT-16-2",
+      "bootCostUsd": 0.15,
+      "terminals": [
+        {
+          "id": "LALbkLI7",
+          "name": "Pin 1",
+          "connectorId": "WK8Zs2kp",
+          "wireId": "GNl_Eh-h"
+        },
+        {
+          "id": "CHD_YYK0",
+          "name": "Pin 2",
+          "connectorId": "WK8Zs2kp",
+          "wireId": "VY6BdPwv"
+        }
+      ],
+      "position": {
+        "x": 975.4672419088556,
+        "y": -287.77005616268053
+      }
+    }
+  ],
+  "wires": [
+    {
+      "id": "m7v_7nn8",
+      "name": "Wire 1",
+      "color": "RED",
+      "lengthInches": 24,
+      "awg": "22",
+      "startTerminalId": "HJE9dK5e",
+      "endTerminalId": "-Awcslcf",
+      "cableId": "fXgrPDoF"
+    },
+    {
+      "id": "R9n27xiL",
+      "name": "Wire 2",
+      "color": "ORANGE",
+      "lengthInches": 24,
+      "awg": "22",
+      "startTerminalId": "AsL5S7jl",
+      "endTerminalId": "su-MpG0h",
+      "cableId": "fXgrPDoF"
+    },
+    {
+      "id": "KZrG3bTS",
+      "name": "Wire 3",
+      "color": "RED",
+      "lengthInches": 36,
+      "awg": "22",
+      "startTerminalId": "-TbQl-DR",
+      "endTerminalId": "1ltmZv9X",
+      "cableId": "vR05lxJs"
+    },
+    {
+      "id": "z54L1ATo",
+      "name": "Wire 4",
+      "color": "BLUE",
+      "lengthInches": 36,
+      "awg": "22",
+      "startTerminalId": "OSXLtH47",
+      "endTerminalId": "txsXVv5P",
+      "cableId": "vR05lxJs"
+    },
+    {
+      "id": "DrNCdC-L",
+      "name": "Wire 5",
+      "color": "GREEN",
+      "lengthInches": 12,
+      "awg": "22",
+      "startTerminalId": "LPUC7ZvM",
+      "endTerminalId": "JU6cCYp2_gnd_0",
+      "cableId": null
+    },
+    {
+      "id": "VY6BdPwv",
+      "name": "Wire 6",
+      "color": "GREEN",
+      "lengthInches": 12,
+      "awg": "22",
+      "startTerminalId": "CHD_YYK0",
+      "endTerminalId": "JU6cCYp2_gnd_1",
+      "cableId": null
+    },
+    {
+      "id": "GNl_Eh-h",
+      "name": "Wire 7",
+      "color": "PURPLE",
+      "lengthInches": 12,
+      "awg": "22",
+      "startTerminalId": "LALbkLI7",
+      "endTerminalId": "pcKlIrfY",
+      "cableId": null
+    }
+  ],
+  "cables": [
+    {
+      "id": "fXgrPDoF",
+      "name": "Left",
+      "lengthInches": 24,
+      "wireIds": [
+        "R9n27xiL",
+        "m7v_7nn8"
+      ],
+      "collapsed": true,
+      "color": "#d69e2e"
+    },
+    {
+      "id": "vR05lxJs",
+      "name": "Right",
+      "lengthInches": 36,
+      "wireIds": [
+        "z54L1ATo",
+        "KZrG3bTS"
+      ],
+      "collapsed": true,
+      "color": "#dd6b20"
+    }
+  ],
+  "splices": [],
+  "grounds": [
+    {
+      "id": "JU6cCYp2",
+      "label": "GND",
+      "handleCount": 4,
+      "position": {
+        "x": 578.8497166673147,
+        "y": 227.359954021349
+      }
+    }
+  ]
+}

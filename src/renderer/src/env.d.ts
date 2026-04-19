@@ -4,5 +4,6 @@ interface Window {
   api: {
     saveHarness(json: string, projectName: string): Promise<{ ok: boolean; filePath?: string }>
     loadHarness(): Promise<{ ok: boolean; json: string | null }>
+    exportImage(base64: string, projectName: string): Promise<{ ok: boolean; filePath?: string }>
   }
 }

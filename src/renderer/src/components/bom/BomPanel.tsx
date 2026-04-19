@@ -1,9 +1,14 @@
 import { useState } from 'react'
+import { toPng } from 'html-to-image'
 import { useShallow } from 'zustand/react/shallow'
 import { useHarnessStore } from '../../store'
-import { generateBom } from '../../models'
+import { generateBom, BomLine } from '../../models'
 
-function exportCsv(rows: { description: string; partNumber: string; qty: number; unitCostUsd: number; totalCostUsd: number }[]) {
+function toKebab(s: string): string {
+  return s.trim().toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '').replace(/-+/g, '-').replace(/^-|-$/g, '') || 'wireman'
+}
+
+function exportCsv(rows: BomLine[], projectName: string) {
   const header = ['Description', 'Part Number', 'Qty', 'Unit Cost ($)', 'Total Cost ($)']
   const lines = [
     header.join(','),
@@ -11,7 +16,7 @@ function exportCsv(rows: { description: string; partNumber: string; qty: number;
       [
         `"${r.description}"`,
         `"${r.partNumber}"`,
-        r.qty,
+        r.category === 'wire' ? `${r.qty} ft` : r.qty,
         r.unitCostUsd.toFixed(2),
         r.totalCostUsd.toFixed(2)
       ].join(',')
@@ -21,7 +26,7 @@ function exportCsv(rows: { description: string; partNumber: string; qty: number;
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
-  a.download = 'wireman-bom.csv'
+  a.download = `${toKebab(projectName)}-bom.csv`
   a.click()
   URL.revokeObjectURL(url)
 }
@@ -33,12 +38,24 @@ function formatTime(minutes: number): string {
   return m === 0 ? `${h} hr` : `${h} hr ${m} min`
 }
 
+async function exportImage(projectName: string) {
+  const canvas = document.querySelector('.app-canvas') as HTMLElement | null
+  if (!canvas) return
+  try {
+    const dataUrl = await toPng(canvas, { backgroundColor: '#1a202c', pixelRatio: 2 })
+    const base64 = dataUrl.replace('data:image/png;base64,', '')
+    await window.api.exportImage(base64, projectName)
+  } catch (e) {
+    console.error('Export image failed', e)
+  }
+}
+
 export function BomPanel() {
   const [open, setOpen] = useState(false)
-  const { connectors, wires, cables, splices, grounds } = useHarnessStore(
+  const { connectors, wires, cables, splices, grounds, projectName } = useHarnessStore(
     useShallow((s) => ({
       connectors: s.connectors, wires: s.wires, cables: s.cables,
-      splices: s.splices, grounds: s.grounds,
+      splices: s.splices, grounds: s.grounds, projectName: s.projectName,
     }))
   )
   const bom = generateBom(connectors, wires, cables, splices, grounds)
@@ -52,6 +69,9 @@ export function BomPanel() {
             Material: ${bom.totalMaterialCostUsd.toFixed(2)} · Build: {formatTime(bom.estimatedLaborMin)} · Est. Sale: ${bom.estimatedSalePriceUsd.toFixed(2)}
           </span>
         </button>
+        <button className="bom-btn bom-btn--export" onClick={() => exportImage(projectName)}>
+          Export Image
+        </button>
       </div>
     )
   }
@@ -61,8 +81,11 @@ export function BomPanel() {
       <div className="bom-panel__header">
         <h3 className="bom-panel__title">Bill of Materials</h3>
         <div className="bom-panel__actions">
-          <button className="bom-btn" onClick={() => exportCsv(bom.lines)}>
+          <button className="bom-btn" onClick={() => exportCsv(bom.lines, projectName)}>
             Export CSV
+          </button>
+          <button className="bom-btn" onClick={() => exportImage(projectName)}>
+            Export Image
           </button>
           <button className="bom-btn bom-btn--close" onClick={() => setOpen(false)}>
             ↓ Collapse
@@ -93,7 +116,7 @@ export function BomPanel() {
               <tr key={i}>
                 <td>{line.description}</td>
                 <td className="bom-table__pn">{line.partNumber}</td>
-                <td>{line.qty}</td>
+                <td>{line.category === 'wire' ? `${line.qty} ft` : line.qty}</td>
                 <td>${line.unitCostUsd.toFixed(2)}</td>
                 <td>${line.totalCostUsd.toFixed(2)}</td>
               </tr>

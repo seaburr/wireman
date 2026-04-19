@@ -16,13 +16,13 @@ mac:
 	npm run package -- --mac
 
 win:
-	npm run package -- --win --arch x64
+	electron-vite build && npx electron-builder --win --x64
 
 win-arm:
-	npm run package -- --win --arch arm64
+	electron-vite build && npx electron-builder --win --arm64
 
 linux:
-	npm run package -- --linux --arch x64
+	electron-vite build && npx electron-builder --linux --x64
 
 clean:
 	rm -rf dist out

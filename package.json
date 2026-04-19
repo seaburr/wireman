@@ -2,16 +2,20 @@
   "name": "wireman-app",
   "version": "0.1.0",
   "description": "Wiring harness builder",
+  "author": "seaburr",
   "main": "out/main/index.js",
   "scripts": {
     "dev": "electron-vite dev",
     "build": "electron-vite build",
     "preview": "electron-vite preview",
     "package": "electron-vite build && electron-builder",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@xyflow/react": "^12.3.0",
+    "html-to-image": "^1.11.13",
     "nanoid": "^5.0.7",
     "zustand": "^5.0.3"
   },
@@ -27,11 +31,14 @@
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "typescript": "^5.6.3",
-    "vite": "^5.4.11"
+    "vite": "^5.4.11",
+    "vitest": "^4.1.4"
   },
   "build": {
     "appId": "com.wireman.app",
     "productName": "Wireman",
+    "copyright": "Copyright © 2026 seaburr",
+    "icon": "build/icon.png",
     "directories": {
       "output": "dist"
     },

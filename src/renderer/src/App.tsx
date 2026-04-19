@@ -12,6 +12,10 @@ export default function App() {
       undo: s.undo, redo: s.redo, canUndo: s.canUndo, canRedo: s.canRedo,
       saveToFile: s.saveToFile, loadFromFile: s.loadFromFile,
       projectName: s.projectName, setProjectName: s.setProjectName,
+      // Subscribe to lengths so the component re-renders when history changes,
+      // ensuring canUndo() / canRedo() are re-evaluated on each render.
+      _pastLen: s.past.length,
+      _futureLen: s.future.length,
     }))
   )
 

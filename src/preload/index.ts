@@ -6,6 +6,8 @@ const api = {
     ipcRenderer.invoke('save-harness', json, projectName),
   loadHarness: (): Promise<{ ok: boolean; json: string | null }> =>
     ipcRenderer.invoke('load-harness'),
+  exportImage: (base64: string, projectName: string): Promise<{ ok: boolean; filePath?: string }> =>
+    ipcRenderer.invoke('export-image', base64, projectName),
 }
 
 if (process.contextIsolated) {
