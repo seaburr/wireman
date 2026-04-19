@@ -23,8 +23,16 @@ jobs:
 
       - run: npm run package -- --mac --publish never
         env:
-          # Skip code signing — unsigned DMG, Gatekeeper will warn on first open
           CSC_IDENTITY_AUTO_DISCOVERY: false
+
+      - name: Ad-hoc sign app bundle and rebuild DMG
+        run: |
+          APP=$(find dist -name "*.app" -maxdepth 3 | head -1)
+          echo "Signing $APP"
+          codesign --deep --force --sign - "$APP"
+          DMG=$(ls dist/*.dmg | head -1)
+          rm "$DMG"
+          hdiutil create -volname "Wireman" -srcfolder "$APP" -ov -format UDZO "$DMG"
 
       - uses: actions/upload-artifact@v4
         with:
