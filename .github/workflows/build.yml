@@ -21,7 +21,7 @@ jobs:
 
       - run: npm ci
 
-      - run: npm run package -- --mac
+      - run: npm run package -- --mac --publish never
         env:
           # Skip code signing — unsigned DMG, Gatekeeper will warn on first open
           CSC_IDENTITY_AUTO_DISCOVERY: false
@@ -45,7 +45,7 @@ jobs:
 
       - run: npm ci
 
-      - run: npm run package -- --win --arch x64
+      - run: npm run package -- --win --x64 --publish never
 
       - uses: actions/upload-artifact@v4
         with:
@@ -54,7 +54,33 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
-  # On tagged releases, publish artifacts to a GitHub Release
+  # On main: overwrite the rolling "nightly" pre-release with fresh binaries
+  release-nightly:
+    if: github.ref == 'refs/heads/main'
+    needs: [build-mac, build-win]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: nightly
+          name: Nightly Build
+          prerelease: true
+          make_latest: false
+          body: |
+            Automated build from `main` — commit ${{ github.sha }}
+
+            > Not a stable release. Download the latest DMG or EXE below.
+          files: |
+            artifacts/wireman-mac/*.dmg
+            artifacts/wireman-win/*.exe
+
+  # On tagged releases, publish a proper stable GitHub Release
   release:
     if: startsWith(github.ref, 'refs/tags/')
     needs: [build-mac, build-win]
