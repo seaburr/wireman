@@ -1,0 +1,48 @@
+{
+  "name": "wireman-app",
+  "version": "0.1.0",
+  "description": "Wiring harness builder",
+  "main": "out/main/index.js",
+  "scripts": {
+    "dev": "electron-vite dev",
+    "build": "electron-vite build",
+    "preview": "electron-vite preview",
+    "package": "electron-vite build && electron-builder",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@xyflow/react": "^12.3.0",
+    "nanoid": "^5.0.7",
+    "zustand": "^5.0.3"
+  },
+  "devDependencies": {
+    "@electron-toolkit/preload": "^3.0.1",
+    "@electron-toolkit/utils": "^3.0.0",
+    "@types/react": "^18.3.1",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.1",
+    "electron": "^33.2.0",
+    "electron-builder": "^25.1.8",
+    "electron-vite": "^2.3.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "typescript": "^5.6.3",
+    "vite": "^5.4.11"
+  },
+  "build": {
+    "appId": "com.wireman.app",
+    "productName": "Wireman",
+    "directories": {
+      "output": "dist"
+    },
+    "mac": {
+      "target": "dmg"
+    },
+    "win": {
+      "target": "nsis"
+    },
+    "linux": {
+      "target": "AppImage"
+    }
+  }
+}
