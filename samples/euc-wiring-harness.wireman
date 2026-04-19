@@ -23,7 +23,7 @@
         { "id": "ecs_p11", "name": "HDLT-PWM",  "connectorId": "eucsig01", "wireId": "w_hdlpwm"  },
         { "id": "ecs_p12", "name": "BRAKE-PWM", "connectorId": "eucsig01", "wireId": "w_brkpwm"  }
       ],
-      "position": { "x": 580, "y": 340 }
+      "position": { "x": 640, "y": 340 }
     },
     {
       "id": "bldc0001",
@@ -38,7 +38,7 @@
         { "id": "bld_p03", "name": "Phase-W",   "connectorId": "bldc0001", "wireId": "w_phasw" },
         { "id": "bld_p04", "name": "Motor-GND", "connectorId": "bldc0001", "wireId": null       }
       ],
-      "position": { "x": 280, "y": 250 }
+      "position": { "x": 320, "y": 340 }
     },
     {
       "id": "moto0001",
@@ -53,7 +53,7 @@
         { "id": "mot_p03", "name": "Phase-W",   "connectorId": "moto0001", "wireId": "w_phasw" },
         { "id": "mot_p04", "name": "Motor-GND", "connectorId": "moto0001", "wireId": null       }
       ],
-      "position": { "x": 80, "y": 250 }
+      "position": { "x": 80, "y": 340 }
     },
     {
       "id": "hall0001",
@@ -70,7 +70,7 @@
         { "id": "hal_p05", "name": "Hall-C", "connectorId": "hall0001", "wireId": "w_hallc"   },
         { "id": "hal_p06", "name": "Temp",   "connectorId": "hall0001", "wireId": null         }
       ],
-      "position": { "x": 80, "y": 470 }
+      "position": { "x": 80, "y": 600 }
     },
     {
       "id": "batt0001",
@@ -83,7 +83,7 @@
         { "id": "bat_p01", "name": "BAT+", "connectorId": "batt0001", "wireId": "w_batp" },
         { "id": "bat_p02", "name": "BAT-", "connectorId": "batt0001", "wireId": "w_batm" }
       ],
-      "position": { "x": 1160, "y": 180 }
+      "position": { "x": 1540, "y": 260 }
     },
     {
       "id": "bms00001",
@@ -102,7 +102,7 @@
         { "id": "bms_p07", "name": "12V+",    "connectorId": "bms00001", "wireId": "w_12vp"  },
         { "id": "bms_p08", "name": "12V-GND", "connectorId": "bms00001", "wireId": "w_12vm"  }
       ],
-      "position": { "x": 960, "y": 310 }
+      "position": { "x": 1260, "y": 340 }
     },
     {
       "id": "chgr0001",
@@ -115,7 +115,7 @@
         { "id": "chg_p01", "name": "CHG+", "connectorId": "chgr0001", "wireId": "w_chgp" },
         { "id": "chg_p02", "name": "CHG-", "connectorId": "chgr0001", "wireId": "w_chgm" }
       ],
-      "position": { "x": 1160, "y": 470 }
+      "position": { "x": 1540, "y": 560 }
     },
     {
       "id": "cpwr0001",
@@ -128,7 +128,7 @@
         { "id": "cpw_p01", "name": "B+", "connectorId": "cpwr0001", "wireId": "w_outp" },
         { "id": "cpw_p02", "name": "B-", "connectorId": "cpwr0001", "wireId": "w_outm" }
       ],
-      "position": { "x": 800, "y": 340 }
+      "position": { "x": 1020, "y": 340 }
     },
     {
       "id": "disp0001",
@@ -145,7 +145,7 @@
         { "id": "dsp_p05", "name": "BTN-IN", "connectorId": "disp0001", "wireId": null         },
         { "id": "dsp_p06", "name": "BRT-ADJ","connectorId": "disp0001", "wireId": null         }
       ],
-      "position": { "x": 600, "y": 60 }
+      "position": { "x": 660, "y": 60 }
     },
     {
       "id": "hdlt0001",
@@ -160,7 +160,7 @@
         { "id": "hdl_p03", "name": "PWM-IN","connectorId": "hdlt0001", "wireId": "w_hdlpwm"  },
         { "id": "hdl_p04", "name": "DIM-FB","connectorId": "hdlt0001", "wireId": null         }
       ],
-      "position": { "x": 300, "y": 60 }
+      "position": { "x": 200, "y": 60 }
     },
     {
       "id": "tail0001",
@@ -175,7 +175,7 @@
         { "id": "tal_p03", "name": "BRAKE-PWM","connectorId": "tail0001", "wireId": "w_brkpwm"  },
         { "id": "tal_p04", "name": "NC",       "connectorId": "tail0001", "wireId": null         }
       ],
-      "position": { "x": 300, "y": 690 }
+      "position": { "x": 200, "y": 820 }
     },
     {
       "id": "pwrb0001",
@@ -190,7 +190,7 @@
         { "id": "pwb_p03", "name": "BTN-SIG","connectorId": "pwrb0001", "wireId": "w_btnsig" },
         { "id": "pwb_p04", "name": "LED-SIG","connectorId": "pwrb0001", "wireId": "w_btnled" }
       ],
-      "position": { "x": 960, "y": 60 }
+      "position": { "x": 1140, "y": 60 }
     },
     {
       "id": "fan00001",
@@ -205,7 +205,7 @@
         { "id": "fan_p03", "name": "PWM",  "connectorId": "fan00001", "wireId": "w_fanpwm" },
         { "id": "fan_p04", "name": "TACH", "connectorId": "fan00001", "wireId": null        }
       ],
-      "position": { "x": 620, "y": 690 }
+      "position": { "x": 660, "y": 820 }
     },
     {
       "id": "spkr0001",
@@ -218,7 +218,7 @@
         { "id": "spk_p01", "name": "SPK+", "connectorId": "spkr0001", "wireId": "w_spkp" },
         { "id": "spk_p02", "name": "SPK-", "connectorId": "spkr0001", "wireId": "w_spkm" }
       ],
-      "position": { "x": 960, "y": 690 }
+      "position": { "x": 1140, "y": 820 }
     }
   ],
   "wires": [
@@ -279,13 +279,13 @@
       "id": "sp12v001",
       "label": "12V-RAIL",
       "handleCount": 8,
-      "position": { "x": 710, "y": 540 }
+      "position": { "x": 880, "y": 600 }
     },
     {
       "id": "spgnd001",
       "label": "GND-RAIL",
       "handleCount": 8,
-      "position": { "x": 860, "y": 540 }
+      "position": { "x": 1060, "y": 600 }
     }
   ],
   "grounds": []

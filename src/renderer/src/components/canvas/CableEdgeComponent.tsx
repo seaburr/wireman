@@ -1,4 +1,4 @@
-import { EdgeProps, getBezierPath } from '@xyflow/react'
+import { EdgeProps, getSmoothStepPath } from '@xyflow/react'
 
 interface CableEdgeData {
   cableName: string
@@ -14,7 +14,7 @@ export function CableEdgeComponent({
   sourcePosition, targetPosition,
   data, selected,
 }: EdgeProps) {
-  const [edgePath, labelX, labelY] = getBezierPath({
+  const [edgePath, labelX, labelY] = getSmoothStepPath({
     sourceX, sourceY, sourcePosition,
     targetX, targetY, targetPosition,
   })

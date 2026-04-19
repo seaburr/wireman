@@ -109,7 +109,7 @@ export function HarnessCanvas() {
         const tgtNode = handleToNode.get(w.endTerminalId!)
         if (!srcNode || !tgtNode) return []
         const cable = w.cableId ? cables.find((c) => c.id === w.cableId) : null
-        const color = cable?.color ?? WIRE_COLORS[w.color] ?? '#718096'
+        const color = WIRE_COLORS[w.color] ?? '#718096'
         const strokeWidth = cable ? 3 : 2
         return [{
           id: w.id,
@@ -123,7 +123,7 @@ export function HarnessCanvas() {
           markerEnd: { type: MarkerType.ArrowClosed, color },
           labelStyle: { fontSize: 10, fill: '#e2e8f0' },
           labelBgStyle: { fill: '#2d3748', fillOpacity: 0.8 },
-          type: srcNode === tgtNode ? 'smoothstep' : 'default'
+          type: 'smoothstep'
         } as Edge]
       })
 
