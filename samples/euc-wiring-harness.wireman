@@ -1,0 +1,292 @@
+{
+  "version": 1,
+  "projectName": "EUC Wiring Harness",
+  "connectors": [
+    {
+      "id": "eucsig01",
+      "name": "EUC-CTRL",
+      "model": "EUC-SIG-12",
+      "costUsd": 8.50,
+      "bootModel": "",
+      "bootCostUsd": 0,
+      "terminals": [
+        { "id": "ecs_p01", "name": "HALL-5V",   "connectorId": "eucsig01", "wireId": "w_hall5v"  },
+        { "id": "ecs_p02", "name": "HALL-GND",  "connectorId": "eucsig01", "wireId": "w_hallgnd" },
+        { "id": "ecs_p03", "name": "HALL-A",    "connectorId": "eucsig01", "wireId": "w_halla"   },
+        { "id": "ecs_p04", "name": "HALL-B",    "connectorId": "eucsig01", "wireId": "w_hallb"   },
+        { "id": "ecs_p05", "name": "HALL-C",    "connectorId": "eucsig01", "wireId": "w_hallc"   },
+        { "id": "ecs_p06", "name": "CAN-H",     "connectorId": "eucsig01", "wireId": "w_canh"    },
+        { "id": "ecs_p07", "name": "CAN-L",     "connectorId": "eucsig01", "wireId": "w_canl"    },
+        { "id": "ecs_p08", "name": "BTN-SIG",   "connectorId": "eucsig01", "wireId": "w_btnsig"  },
+        { "id": "ecs_p09", "name": "BTN-LED",   "connectorId": "eucsig01", "wireId": "w_btnled"  },
+        { "id": "ecs_p10", "name": "FAN-PWM",   "connectorId": "eucsig01", "wireId": "w_fanpwm"  },
+        { "id": "ecs_p11", "name": "HDLT-PWM",  "connectorId": "eucsig01", "wireId": "w_hdlpwm"  },
+        { "id": "ecs_p12", "name": "BRAKE-PWM", "connectorId": "eucsig01", "wireId": "w_brkpwm"  }
+      ],
+      "position": { "x": 580, "y": 340 }
+    },
+    {
+      "id": "bldc0001",
+      "name": "BLDC-OUT",
+      "model": "DTM-4",
+      "costUsd": 5.00,
+      "bootModel": "HTAT-16-4",
+      "bootCostUsd": 0.18,
+      "terminals": [
+        { "id": "bld_p01", "name": "Phase-U",   "connectorId": "bldc0001", "wireId": "w_phasu" },
+        { "id": "bld_p02", "name": "Phase-V",   "connectorId": "bldc0001", "wireId": "w_phasv" },
+        { "id": "bld_p03", "name": "Phase-W",   "connectorId": "bldc0001", "wireId": "w_phasw" },
+        { "id": "bld_p04", "name": "Motor-GND", "connectorId": "bldc0001", "wireId": null       }
+      ],
+      "position": { "x": 280, "y": 250 }
+    },
+    {
+      "id": "moto0001",
+      "name": "MOTOR",
+      "model": "DTM-4",
+      "costUsd": 5.00,
+      "bootModel": "HTAT-16-4",
+      "bootCostUsd": 0.18,
+      "terminals": [
+        { "id": "mot_p01", "name": "Phase-U",   "connectorId": "moto0001", "wireId": "w_phasu" },
+        { "id": "mot_p02", "name": "Phase-V",   "connectorId": "moto0001", "wireId": "w_phasv" },
+        { "id": "mot_p03", "name": "Phase-W",   "connectorId": "moto0001", "wireId": "w_phasw" },
+        { "id": "mot_p04", "name": "Motor-GND", "connectorId": "moto0001", "wireId": null       }
+      ],
+      "position": { "x": 80, "y": 250 }
+    },
+    {
+      "id": "hall0001",
+      "name": "HALLS",
+      "model": "DTM-6",
+      "costUsd": 6.50,
+      "bootModel": "HTAT-16-6",
+      "bootCostUsd": 0.20,
+      "terminals": [
+        { "id": "hal_p01", "name": "+5V",    "connectorId": "hall0001", "wireId": "w_hall5v"  },
+        { "id": "hal_p02", "name": "GND",    "connectorId": "hall0001", "wireId": "w_hallgnd" },
+        { "id": "hal_p03", "name": "Hall-A", "connectorId": "hall0001", "wireId": "w_halla"   },
+        { "id": "hal_p04", "name": "Hall-B", "connectorId": "hall0001", "wireId": "w_hallb"   },
+        { "id": "hal_p05", "name": "Hall-C", "connectorId": "hall0001", "wireId": "w_hallc"   },
+        { "id": "hal_p06", "name": "Temp",   "connectorId": "hall0001", "wireId": null         }
+      ],
+      "position": { "x": 80, "y": 470 }
+    },
+    {
+      "id": "batt0001",
+      "name": "BATTERY",
+      "model": "DTM-2",
+      "costUsd": 3.50,
+      "bootModel": "HTAT-16-2",
+      "bootCostUsd": 0.15,
+      "terminals": [
+        { "id": "bat_p01", "name": "BAT+", "connectorId": "batt0001", "wireId": "w_batp" },
+        { "id": "bat_p02", "name": "BAT-", "connectorId": "batt0001", "wireId": "w_batm" }
+      ],
+      "position": { "x": 1160, "y": 180 }
+    },
+    {
+      "id": "bms00001",
+      "name": "BMS",
+      "model": "DTM-8",
+      "costUsd": 8.00,
+      "bootModel": "HTAT-16-8",
+      "bootCostUsd": 0.22,
+      "terminals": [
+        { "id": "bms_p01", "name": "BAT+",    "connectorId": "bms00001", "wireId": "w_batp"  },
+        { "id": "bms_p02", "name": "BAT-",    "connectorId": "bms00001", "wireId": "w_batm"  },
+        { "id": "bms_p03", "name": "CHG+",    "connectorId": "bms00001", "wireId": "w_chgp"  },
+        { "id": "bms_p04", "name": "CHG-",    "connectorId": "bms00001", "wireId": "w_chgm"  },
+        { "id": "bms_p05", "name": "OUT+",    "connectorId": "bms00001", "wireId": "w_outp"  },
+        { "id": "bms_p06", "name": "OUT-",    "connectorId": "bms00001", "wireId": "w_outm"  },
+        { "id": "bms_p07", "name": "12V+",    "connectorId": "bms00001", "wireId": "w_12vp"  },
+        { "id": "bms_p08", "name": "12V-GND", "connectorId": "bms00001", "wireId": "w_12vm"  }
+      ],
+      "position": { "x": 960, "y": 310 }
+    },
+    {
+      "id": "chgr0001",
+      "name": "CHARGER",
+      "model": "DTM-2",
+      "costUsd": 3.50,
+      "bootModel": "HTAT-16-2",
+      "bootCostUsd": 0.15,
+      "terminals": [
+        { "id": "chg_p01", "name": "CHG+", "connectorId": "chgr0001", "wireId": "w_chgp" },
+        { "id": "chg_p02", "name": "CHG-", "connectorId": "chgr0001", "wireId": "w_chgm" }
+      ],
+      "position": { "x": 1160, "y": 470 }
+    },
+    {
+      "id": "cpwr0001",
+      "name": "CTRL-PWR",
+      "model": "DTM-2",
+      "costUsd": 3.50,
+      "bootModel": "HTAT-16-2",
+      "bootCostUsd": 0.15,
+      "terminals": [
+        { "id": "cpw_p01", "name": "B+", "connectorId": "cpwr0001", "wireId": "w_outp" },
+        { "id": "cpw_p02", "name": "B-", "connectorId": "cpwr0001", "wireId": "w_outm" }
+      ],
+      "position": { "x": 800, "y": 340 }
+    },
+    {
+      "id": "disp0001",
+      "name": "DISPLAY",
+      "model": "DTM-6",
+      "costUsd": 6.50,
+      "bootModel": "HTAT-16-6",
+      "bootCostUsd": 0.20,
+      "terminals": [
+        { "id": "dsp_p01", "name": "+12V",   "connectorId": "disp0001", "wireId": "w_disp12"  },
+        { "id": "dsp_p02", "name": "GND",    "connectorId": "disp0001", "wireId": "w_dispgnd" },
+        { "id": "dsp_p03", "name": "CAN-H",  "connectorId": "disp0001", "wireId": "w_canh"    },
+        { "id": "dsp_p04", "name": "CAN-L",  "connectorId": "disp0001", "wireId": "w_canl"    },
+        { "id": "dsp_p05", "name": "BTN-IN", "connectorId": "disp0001", "wireId": null         },
+        { "id": "dsp_p06", "name": "BRT-ADJ","connectorId": "disp0001", "wireId": null         }
+      ],
+      "position": { "x": 600, "y": 60 }
+    },
+    {
+      "id": "hdlt0001",
+      "name": "HEADLIGHT",
+      "model": "DTM-4",
+      "costUsd": 5.00,
+      "bootModel": "HTAT-16-4",
+      "bootCostUsd": 0.18,
+      "terminals": [
+        { "id": "hdl_p01", "name": "+12V",  "connectorId": "hdlt0001", "wireId": "w_hdlt12"  },
+        { "id": "hdl_p02", "name": "GND",   "connectorId": "hdlt0001", "wireId": "w_hdltgnd" },
+        { "id": "hdl_p03", "name": "PWM-IN","connectorId": "hdlt0001", "wireId": "w_hdlpwm"  },
+        { "id": "hdl_p04", "name": "DIM-FB","connectorId": "hdlt0001", "wireId": null         }
+      ],
+      "position": { "x": 300, "y": 60 }
+    },
+    {
+      "id": "tail0001",
+      "name": "TAILLIGHT",
+      "model": "DTM-4",
+      "costUsd": 5.00,
+      "bootModel": "HTAT-16-4",
+      "bootCostUsd": 0.18,
+      "terminals": [
+        { "id": "tal_p01", "name": "+12V",     "connectorId": "tail0001", "wireId": "w_tail12"  },
+        { "id": "tal_p02", "name": "GND",      "connectorId": "tail0001", "wireId": "w_tailgnd" },
+        { "id": "tal_p03", "name": "BRAKE-PWM","connectorId": "tail0001", "wireId": "w_brkpwm"  },
+        { "id": "tal_p04", "name": "NC",       "connectorId": "tail0001", "wireId": null         }
+      ],
+      "position": { "x": 300, "y": 690 }
+    },
+    {
+      "id": "pwrb0001",
+      "name": "PWR-BTN",
+      "model": "DTM-4",
+      "costUsd": 5.00,
+      "bootModel": "HTAT-16-4",
+      "bootCostUsd": 0.18,
+      "terminals": [
+        { "id": "pwb_p01", "name": "+12V",  "connectorId": "pwrb0001", "wireId": "w_btn12"  },
+        { "id": "pwb_p02", "name": "GND",   "connectorId": "pwrb0001", "wireId": "w_btngnd" },
+        { "id": "pwb_p03", "name": "BTN-SIG","connectorId": "pwrb0001", "wireId": "w_btnsig" },
+        { "id": "pwb_p04", "name": "LED-SIG","connectorId": "pwrb0001", "wireId": "w_btnled" }
+      ],
+      "position": { "x": 960, "y": 60 }
+    },
+    {
+      "id": "fan00001",
+      "name": "COOLING-FAN",
+      "model": "DTM-4",
+      "costUsd": 5.00,
+      "bootModel": "HTAT-16-4",
+      "bootCostUsd": 0.18,
+      "terminals": [
+        { "id": "fan_p01", "name": "+12V", "connectorId": "fan00001", "wireId": "w_fan12"  },
+        { "id": "fan_p02", "name": "GND",  "connectorId": "fan00001", "wireId": "w_fangnd" },
+        { "id": "fan_p03", "name": "PWM",  "connectorId": "fan00001", "wireId": "w_fanpwm" },
+        { "id": "fan_p04", "name": "TACH", "connectorId": "fan00001", "wireId": null        }
+      ],
+      "position": { "x": 620, "y": 690 }
+    },
+    {
+      "id": "spkr0001",
+      "name": "SPEAKER",
+      "model": "DTM-2",
+      "costUsd": 3.50,
+      "bootModel": "HTAT-16-2",
+      "bootCostUsd": 0.15,
+      "terminals": [
+        { "id": "spk_p01", "name": "SPK+", "connectorId": "spkr0001", "wireId": "w_spkp" },
+        { "id": "spk_p02", "name": "SPK-", "connectorId": "spkr0001", "wireId": "w_spkm" }
+      ],
+      "position": { "x": 960, "y": 690 }
+    }
+  ],
+  "wires": [
+    { "id": "w_phasu",   "name": "Phase-U",    "color": "RED",    "lengthInches": 18, "awg": "14", "startTerminalId": "bld_p01", "endTerminalId": "mot_p01", "cableId": "cable001" },
+    { "id": "w_phasv",   "name": "Phase-V",    "color": "YELLOW", "lengthInches": 18, "awg": "14", "startTerminalId": "bld_p02", "endTerminalId": "mot_p02", "cableId": "cable001" },
+    { "id": "w_phasw",   "name": "Phase-W",    "color": "BLUE",   "lengthInches": 18, "awg": "14", "startTerminalId": "bld_p03", "endTerminalId": "mot_p03", "cableId": "cable001" },
+    { "id": "w_hall5v",  "name": "Hall-5V",    "color": "RED",    "lengthInches": 24, "awg": "22", "startTerminalId": "ecs_p01", "endTerminalId": "hal_p01", "cableId": "cable002" },
+    { "id": "w_hallgnd", "name": "Hall-GND",   "color": "BLACK",  "lengthInches": 24, "awg": "22", "startTerminalId": "ecs_p02", "endTerminalId": "hal_p02", "cableId": "cable002" },
+    { "id": "w_halla",   "name": "Hall-A",     "color": "YELLOW", "lengthInches": 24, "awg": "22", "startTerminalId": "ecs_p03", "endTerminalId": "hal_p03", "cableId": "cable002" },
+    { "id": "w_hallb",   "name": "Hall-B",     "color": "GREEN",  "lengthInches": 24, "awg": "22", "startTerminalId": "ecs_p04", "endTerminalId": "hal_p04", "cableId": "cable002" },
+    { "id": "w_hallc",   "name": "Hall-C",     "color": "BLUE",   "lengthInches": 24, "awg": "22", "startTerminalId": "ecs_p05", "endTerminalId": "hal_p05", "cableId": "cable002" },
+    { "id": "w_batp",    "name": "BAT+",       "color": "RED",    "lengthInches": 12, "awg": "12", "startTerminalId": "bat_p01", "endTerminalId": "bms_p01", "cableId": null },
+    { "id": "w_batm",    "name": "BAT-",       "color": "BLACK",  "lengthInches": 12, "awg": "12", "startTerminalId": "bat_p02", "endTerminalId": "bms_p02", "cableId": null },
+    { "id": "w_chgp",    "name": "CHG+",       "color": "RED",    "lengthInches": 12, "awg": "18", "startTerminalId": "chg_p01", "endTerminalId": "bms_p03", "cableId": null },
+    { "id": "w_chgm",    "name": "CHG-",       "color": "BLACK",  "lengthInches": 12, "awg": "18", "startTerminalId": "chg_p02", "endTerminalId": "bms_p04", "cableId": null },
+    { "id": "w_outp",    "name": "PWR-OUT+",   "color": "RED",    "lengthInches": 18, "awg": "14", "startTerminalId": "bms_p05", "endTerminalId": "cpw_p01", "cableId": null },
+    { "id": "w_outm",    "name": "PWR-OUT-",   "color": "BLACK",  "lengthInches": 18, "awg": "14", "startTerminalId": "bms_p06", "endTerminalId": "cpw_p02", "cableId": null },
+    { "id": "w_12vp",    "name": "12V+",       "color": "RED",    "lengthInches": 12, "awg": "22", "startTerminalId": "bms_p07", "endTerminalId": "sp12v001_0", "cableId": null },
+    { "id": "w_12vm",    "name": "12V-GND",    "color": "BLACK",  "lengthInches": 12, "awg": "22", "startTerminalId": "bms_p08", "endTerminalId": "spgnd001_0", "cableId": null },
+    { "id": "w_disp12",  "name": "Disp-12V",   "color": "RED",    "lengthInches": 18, "awg": "22", "startTerminalId": "sp12v001_1", "endTerminalId": "dsp_p01", "cableId": null },
+    { "id": "w_dispgnd", "name": "Disp-GND",   "color": "BLACK",  "lengthInches": 18, "awg": "22", "startTerminalId": "spgnd001_1", "endTerminalId": "dsp_p02", "cableId": null },
+    { "id": "w_hdlt12",  "name": "HDLT-12V",   "color": "RED",    "lengthInches": 24, "awg": "22", "startTerminalId": "sp12v001_2", "endTerminalId": "hdl_p01", "cableId": null },
+    { "id": "w_hdltgnd", "name": "HDLT-GND",   "color": "BLACK",  "lengthInches": 24, "awg": "22", "startTerminalId": "spgnd001_2", "endTerminalId": "hdl_p02", "cableId": null },
+    { "id": "w_tail12",  "name": "TAIL-12V",   "color": "RED",    "lengthInches": 30, "awg": "22", "startTerminalId": "sp12v001_3", "endTerminalId": "tal_p01", "cableId": null },
+    { "id": "w_tailgnd", "name": "TAIL-GND",   "color": "BLACK",  "lengthInches": 30, "awg": "22", "startTerminalId": "spgnd001_3", "endTerminalId": "tal_p02", "cableId": null },
+    { "id": "w_btn12",   "name": "BTN-12V",    "color": "RED",    "lengthInches": 24, "awg": "22", "startTerminalId": "sp12v001_4", "endTerminalId": "pwb_p01", "cableId": null },
+    { "id": "w_btngnd",  "name": "BTN-GND",    "color": "BLACK",  "lengthInches": 24, "awg": "22", "startTerminalId": "spgnd001_4", "endTerminalId": "pwb_p02", "cableId": null },
+    { "id": "w_fan12",   "name": "FAN-12V",    "color": "RED",    "lengthInches": 12, "awg": "22", "startTerminalId": "sp12v001_5", "endTerminalId": "fan_p01", "cableId": null },
+    { "id": "w_fangnd",  "name": "FAN-GND",    "color": "BLACK",  "lengthInches": 12, "awg": "22", "startTerminalId": "spgnd001_5", "endTerminalId": "fan_p02", "cableId": null },
+    { "id": "w_spkp",    "name": "SPK+",       "color": "ORANGE", "lengthInches": 18, "awg": "22", "startTerminalId": "sp12v001_6", "endTerminalId": "spk_p01", "cableId": null },
+    { "id": "w_spkm",    "name": "SPK-",       "color": "BLACK",  "lengthInches": 18, "awg": "22", "startTerminalId": "spgnd001_6", "endTerminalId": "spk_p02", "cableId": null },
+    { "id": "w_canh",    "name": "CAN-H",      "color": "GREEN",  "lengthInches": 24, "awg": "22", "startTerminalId": "ecs_p06",    "endTerminalId": "dsp_p03", "cableId": null },
+    { "id": "w_canl",    "name": "CAN-L",      "color": "WHITE",  "lengthInches": 24, "awg": "22", "startTerminalId": "ecs_p07",    "endTerminalId": "dsp_p04", "cableId": null },
+    { "id": "w_btnsig",  "name": "BTN-SIG",    "color": "ORANGE", "lengthInches": 30, "awg": "22", "startTerminalId": "ecs_p08",    "endTerminalId": "pwb_p03", "cableId": null },
+    { "id": "w_btnled",  "name": "BTN-LED",    "color": "PURPLE", "lengthInches": 30, "awg": "22", "startTerminalId": "ecs_p09",    "endTerminalId": "pwb_p04", "cableId": null },
+    { "id": "w_fanpwm",  "name": "FAN-PWM",    "color": "YELLOW", "lengthInches": 18, "awg": "22", "startTerminalId": "ecs_p10",    "endTerminalId": "fan_p03", "cableId": null },
+    { "id": "w_hdlpwm",  "name": "HDLT-PWM",   "color": "ORANGE", "lengthInches": 30, "awg": "22", "startTerminalId": "ecs_p11",    "endTerminalId": "hdl_p03", "cableId": null },
+    { "id": "w_brkpwm",  "name": "BRAKE-PWM",  "color": "VIOLET", "lengthInches": 36, "awg": "22", "startTerminalId": "ecs_p12",    "endTerminalId": "tal_p03", "cableId": null }
+  ],
+  "cables": [
+    {
+      "id": "cable001",
+      "name": "Motor Phase Cable",
+      "lengthInches": 18,
+      "wireIds": ["w_phasu", "w_phasv", "w_phasw"],
+      "collapsed": true
+    },
+    {
+      "id": "cable002",
+      "name": "Hall Sensor Cable",
+      "lengthInches": 24,
+      "wireIds": ["w_hall5v", "w_hallgnd", "w_halla", "w_hallb", "w_hallc"],
+      "collapsed": true
+    }
+  ],
+  "splices": [
+    {
+      "id": "sp12v001",
+      "label": "12V-RAIL",
+      "handleCount": 8,
+      "position": { "x": 710, "y": 540 }
+    },
+    {
+      "id": "spgnd001",
+      "label": "GND-RAIL",
+      "handleCount": 8,
+      "position": { "x": 860, "y": 540 }
+    }
+  ],
+  "grounds": []
+}
