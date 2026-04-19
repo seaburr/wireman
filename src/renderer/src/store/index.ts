@@ -1,8 +1,10 @@
 import { create } from 'zustand'
 import {
-  ConnectorNode, Wire, Cable, SpliceNode, GroundNode,
+  ConnectorNode, Wire, Cable, SpliceNode, GroundNode, FuseBlock, PowerRail, PowerBus,
   createConnector, createTerminal, createWire, createCable, createSplice, createGround,
-  groundHandleId,
+  createFuseBlock, createPowerRail, createPowerBus,
+  groundHandleId, fuseBlockInHandle, fuseBlockOutHandle, powerRailPosHandle, powerRailNegHandle,
+  powerBusInHandle, powerBusOutHandle,
   generateBom, validateHarness,
   Bom, ValidationIssue
 } from '../models'
@@ -30,6 +32,9 @@ interface CoreSnapshot {
   cables: Cable[]
   splices: SpliceNode[]
   grounds: GroundNode[]
+  fuseBlocks: FuseBlock[]
+  powerRails: PowerRail[]
+  powerBuses: PowerBus[]
 }
 
 interface HarnessState {
@@ -41,8 +46,11 @@ interface HarnessState {
   cables: Cable[]
   splices: SpliceNode[]
   grounds: GroundNode[]
+  fuseBlocks: FuseBlock[]
+  powerRails: PowerRail[]
+  powerBuses: PowerBus[]
   selectedId: string | null
-  selectedType: 'connector' | 'wire' | 'cable' | 'splice' | 'ground' | null
+  selectedType: 'connector' | 'wire' | 'cable' | 'splice' | 'ground' | 'fuseBlock' | 'powerRail' | 'powerBus' | null
 
   // History
   past: CoreSnapshot[]
@@ -92,6 +100,24 @@ interface HarnessState {
   removeGround: (id: string) => void
   moveGround: (id: string, position: { x: number; y: number }) => void
 
+  // Fuse block actions
+  addFuseBlock: (position?: { x: number; y: number }) => void
+  updateFuseBlock: (id: string, patch: Partial<Omit<FuseBlock, 'id'>>) => void
+  removeFuseBlock: (id: string) => void
+  moveFuseBlock: (id: string, position: { x: number; y: number }) => void
+
+  // Power rail actions
+  addPowerRail: (position?: { x: number; y: number }) => void
+  updatePowerRail: (id: string, patch: Partial<Omit<PowerRail, 'id'>>) => void
+  removePowerRail: (id: string) => void
+  movePowerRail: (id: string, position: { x: number; y: number }) => void
+
+  // Power bus actions
+  addPowerBus: (position?: { x: number; y: number }) => void
+  updatePowerBus: (id: string, patch: Partial<Omit<PowerBus, 'id'>>) => void
+  removePowerBus: (id: string) => void
+  movePowerBus: (id: string, position: { x: number; y: number }) => void
+
   // Selection
   select: (id: string | null, type: HarnessState['selectedType']) => void
 
@@ -105,11 +131,12 @@ interface HarnessState {
 }
 
 export const useHarnessStore = create<HarnessState>((set, get) => {
-  /** Capture the five mutable collections as a cheap snapshot. */
+  /** Capture all mutable collections as a cheap snapshot. */
   const snap = (): CoreSnapshot => {
     const s = get()
     return { connectors: s.connectors, wires: s.wires, cables: s.cables,
-             splices: s.splices, grounds: s.grounds }
+             splices: s.splices, grounds: s.grounds,
+             fuseBlocks: s.fuseBlocks, powerRails: s.powerRails, powerBuses: s.powerBuses }
   }
 
   /** Call before every state-mutating action to push a history entry. */
@@ -130,6 +157,9 @@ export const useHarnessStore = create<HarnessState>((set, get) => {
   cables: [],
   splices: [],
   grounds: [],
+  fuseBlocks: [],
+  powerRails: [],
+  powerBuses: [],
   selectedId: null,
   selectedType: null,
   past: [],
@@ -240,7 +270,7 @@ export const useHarnessStore = create<HarnessState>((set, get) => {
 
   addWire: (startTerminalId, endTerminalId) => {
     pushHistory()
-    const { connectors, grounds } = get()
+    const { connectors, grounds, powerBuses } = get()
 
     // Enforce one wire per regular connector pin
     const terminalAlreadyUsed = (hid: string | undefined) => {
@@ -269,8 +299,7 @@ export const useHarnessStore = create<HarnessState>((set, get) => {
         )
       }))
 
-      // If this wire connects to a ground node, grow its handle count so
-      // there is always at least one spare handle available
+      // Auto-grow ground handles — always keep ≥1 spare
       const grounds = s.grounds.map((g) => {
         const myHandles = Array.from({ length: g.handleCount }, (_, i) => groundHandleId(g.id, i))
         if (
@@ -282,7 +311,16 @@ export const useHarnessStore = create<HarnessState>((set, get) => {
         return g
       })
 
-      return { wires: [...s.wires, wire], connectors, grounds }
+      // Auto-grow power bus output slots — always keep ≥1 spare
+      const buses = s.powerBuses.map((pb) => {
+        const lastOut = powerBusOutHandle(pb.id, pb.outputCount - 1)
+        if (startTerminalId === lastOut || endTerminalId === lastOut) {
+          return { ...pb, outputCount: pb.outputCount + 1 }
+        }
+        return pb
+      })
+
+      return { wires: [...s.wires, wire], connectors, grounds, powerBuses: buses }
     })
   },
 
@@ -465,13 +503,148 @@ export const useHarnessStore = create<HarnessState>((set, get) => {
     set((s) => ({ grounds: s.grounds.map((g) => (g.id === id ? { ...g, position } : g)) }))
   },
 
+  // ── Fuse Blocks ───────────────────────────────────────────────────────────
+
+  addFuseBlock: (position) => {
+    pushHistory()
+    const pos = position ?? { x: 200 + Math.random() * 300, y: 150 + Math.random() * 200 }
+    const fb = createFuseBlock(pos)
+    set((s) => ({ fuseBlocks: [...s.fuseBlocks, fb] }))
+    get().select(fb.id, 'fuseBlock')
+  },
+
+  updateFuseBlock: (id, patch) => {
+    pushHistory()
+    set((s) => ({
+      fuseBlocks: s.fuseBlocks.map((fb) => {
+        if (fb.id !== id) return fb
+        const updated = { ...fb, ...patch }
+        // Keep ampRatings in sync with circuits count
+        const circuits = updated.circuits ?? fb.circuits
+        const ratings = updated.ampRatings ?? fb.ampRatings
+        const synced = Array.from({ length: circuits }, (_, i) => ratings[i] ?? 10)
+        return { ...updated, ampRatings: synced }
+      })
+    }))
+  },
+
+  removeFuseBlock: (id) => {
+    pushHistory()
+    const fb = get().fuseBlocks.find((f) => f.id === id)
+    if (!fb) return
+    const handles = new Set([
+      fuseBlockInHandle(id),
+      ...Array.from({ length: fb.circuits }, (_, i) => fuseBlockOutHandle(id, i))
+    ])
+    const wireIdsToRemove = get().wires
+      .filter((w) =>
+        (w.startTerminalId && handles.has(w.startTerminalId)) ||
+        (w.endTerminalId && handles.has(w.endTerminalId))
+      )
+      .map((w) => w.id)
+    set((s) => ({
+      fuseBlocks: s.fuseBlocks.filter((f) => f.id !== id),
+      wires: s.wires.filter((w) => !wireIdsToRemove.includes(w.id)),
+      cables: s.cables.map((ca) => ({ ...ca, wireIds: ca.wireIds.filter((wid) => !wireIdsToRemove.includes(wid)) })),
+      selectedId: s.selectedId === id ? null : s.selectedId,
+      selectedType: s.selectedId === id ? null : s.selectedType
+    }))
+  },
+
+  moveFuseBlock: (id, position) => {
+    set((s) => ({ fuseBlocks: s.fuseBlocks.map((fb) => (fb.id === id ? { ...fb, position } : fb)) }))
+  },
+
+  // ── Power Rails ───────────────────────────────────────────────────────────
+
+  addPowerRail: (position) => {
+    pushHistory()
+    const pos = position ?? { x: 200 + Math.random() * 300, y: 150 + Math.random() * 200 }
+    const pr = createPowerRail(pos)
+    set((s) => ({ powerRails: [...s.powerRails, pr] }))
+    get().select(pr.id, 'powerRail')
+  },
+
+  updatePowerRail: (id, patch) => {
+    pushHistory()
+    set((s) => ({ powerRails: s.powerRails.map((pr) => (pr.id === id ? { ...pr, ...patch } : pr)) }))
+  },
+
+  removePowerRail: (id) => {
+    pushHistory()
+    if (!get().powerRails.find((r) => r.id === id)) return
+    const handles = new Set([powerRailPosHandle(id), powerRailNegHandle(id)])
+    const wireIdsToRemove = get().wires
+      .filter((w) =>
+        (w.startTerminalId && handles.has(w.startTerminalId)) ||
+        (w.endTerminalId && handles.has(w.endTerminalId))
+      )
+      .map((w) => w.id)
+    set((s) => ({
+      powerRails: s.powerRails.filter((r) => r.id !== id),
+      wires: s.wires.filter((w) => !wireIdsToRemove.includes(w.id)),
+      cables: s.cables.map((ca) => ({ ...ca, wireIds: ca.wireIds.filter((wid) => !wireIdsToRemove.includes(wid)) })),
+      selectedId: s.selectedId === id ? null : s.selectedId,
+      selectedType: s.selectedId === id ? null : s.selectedType
+    }))
+  },
+
+  movePowerRail: (id, position) => {
+    set((s) => ({ powerRails: s.powerRails.map((pr) => (pr.id === id ? { ...pr, position } : pr)) }))
+  },
+
+  // ── Power Buses ───────────────────────────────────────────────────────────
+
+  addPowerBus: (position) => {
+    pushHistory()
+    const pos = position ?? { x: 200 + Math.random() * 300, y: 150 + Math.random() * 200 }
+    const pb = createPowerBus(pos)
+    set((s) => ({ powerBuses: [...s.powerBuses, pb] }))
+    get().select(pb.id, 'powerBus')
+  },
+
+  updatePowerBus: (id, patch) => {
+    pushHistory()
+    set((s) => ({ powerBuses: s.powerBuses.map((pb) => (pb.id === id ? { ...pb, ...patch } : pb)) }))
+  },
+
+  removePowerBus: (id) => {
+    pushHistory()
+    const pb = get().powerBuses.find((b) => b.id === id)
+    if (!pb) return
+    const handles = new Set([
+      powerBusInHandle(id),
+      ...Array.from({ length: pb.outputCount }, (_, i) => powerBusOutHandle(id, i))
+    ])
+    const wireIdsToRemove = get().wires
+      .filter((w) =>
+        (w.startTerminalId && handles.has(w.startTerminalId)) ||
+        (w.endTerminalId && handles.has(w.endTerminalId))
+      )
+      .map((w) => w.id)
+    set((s) => ({
+      powerBuses: s.powerBuses.filter((b) => b.id !== id),
+      wires: s.wires.filter((w) => !wireIdsToRemove.includes(w.id)),
+      cables: s.cables.map((ca) => ({ ...ca, wireIds: ca.wireIds.filter((wid) => !wireIdsToRemove.includes(wid)) })),
+      selectedId: s.selectedId === id ? null : s.selectedId,
+      selectedType: s.selectedId === id ? null : s.selectedType
+    }))
+  },
+
+  movePowerBus: (id, position) => {
+    set((s) => ({ powerBuses: s.powerBuses.map((pb) => (pb.id === id ? { ...pb, position } : pb)) }))
+  },
+
   // ── Selection / computed ─────────────────────────────────────────────────
 
   select: (id, type) => set({ selectedId: id, selectedType: type }),
 
   saveToFile: async () => {
-    const { projectName, connectors, wires, cables, splices, grounds } = get()
-    const json = JSON.stringify({ version: FILE_VERSION, projectName, connectors, wires, cables, splices, grounds }, null, 2)
+    const { projectName, connectors, wires, cables, splices, grounds, fuseBlocks, powerRails, powerBuses } = get()
+    const json = JSON.stringify(
+      { version: FILE_VERSION, projectName, connectors, wires, cables, splices, grounds, fuseBlocks, powerRails, powerBuses },
+      null, 2
+    )
     await window.api.saveHarness(json, projectName)
   },
 
@@ -482,8 +655,6 @@ export const useHarnessStore = create<HarnessState>((set, get) => {
       const data = JSON.parse(result.json)
       const fileVer = typeof data.version === 'number' ? data.version : 0
       if (fileVer > FILE_VERSION) {
-        // File is from a newer build — warn but attempt to load anyway,
-        // since unknown fields are simply ignored and new fields have defaults.
         console.warn(`Wireman: file version ${fileVer} is newer than this build (${FILE_VERSION}). Some data may be ignored.`)
       }
       if (fileVer < 1) { console.error('Wireman: unrecognised file format'); return }
@@ -495,6 +666,9 @@ export const useHarnessStore = create<HarnessState>((set, get) => {
         cables:       data.cables      ?? [],
         splices:      data.splices     ?? [],
         grounds:      data.grounds     ?? [],
+        fuseBlocks:   data.fuseBlocks  ?? [],
+        powerRails:   data.powerRails  ?? [],
+        powerBuses:   data.powerBuses  ?? [],
         selectedId:   null,
         selectedType: null,
       })
@@ -503,7 +677,13 @@ export const useHarnessStore = create<HarnessState>((set, get) => {
     }
   },
 
-  getBom: () => generateBom(get().connectors, get().wires, get().cables, get().splices, get().grounds),
-  getValidation: () => validateHarness(get().connectors, get().wires, get().splices, get().grounds)
+  getBom: () => {
+    const s = get()
+    return generateBom(s.connectors, s.wires, s.cables, s.splices, s.grounds, s.fuseBlocks, s.powerRails, s.powerBuses)
+  },
+  getValidation: () => {
+    const s = get()
+    return validateHarness(s.connectors, s.wires, s.splices, s.grounds, s.fuseBlocks, s.powerRails, s.powerBuses)
+  }
   })
 })

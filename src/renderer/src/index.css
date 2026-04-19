@@ -613,6 +613,241 @@ body, #root {
   background: #68d391 !important;
 }
 
+/* ── Fuse Block Node ────────────────────────────── */
+
+.fuse-block-node {
+  background: var(--bg-node, #2d3748);
+  border: 1px solid #4a5568;
+  border-radius: 6px;
+  min-width: 120px;
+  position: relative;
+  cursor: pointer;
+  overflow: visible;
+}
+
+.fuse-block-node--selected {
+  border-color: #4299e1;
+  box-shadow: 0 0 0 2px rgba(66,153,225,0.35);
+}
+
+.fuse-block-node__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 8px;
+  height: 28px;
+  border-bottom: 1px solid #4a5568;
+  background: #1e2a3a;
+  border-radius: 5px 5px 0 0;
+}
+
+.fuse-block-node__label {
+  font-size: 10px;
+  font-weight: 700;
+  color: #fbd38d;
+  font-family: monospace;
+  letter-spacing: 0.02em;
+}
+
+.fuse-block-node__meta {
+  font-size: 9px;
+  color: #718096;
+}
+
+.fuse-block-node__circuit {
+  display: flex;
+  align-items: center;
+  height: 28px;
+  padding: 0 8px;
+  border-bottom: 1px solid #2d3748;
+  position: relative;
+}
+
+.fuse-block-node__circuit:last-child { border-bottom: none; }
+
+.fuse-block-node__circuit-num {
+  font-size: 9px;
+  color: #718096;
+  width: 14px;
+  flex-shrink: 0;
+}
+
+.fuse-block-node__circuit-amp {
+  font-size: 11px;
+  font-weight: 600;
+  color: #fbd38d;
+  font-family: monospace;
+  flex: 1;
+  text-align: right;
+  padding-right: 6px;
+}
+
+.fuse-handle {
+  width: 8px !important;
+  height: 8px !important;
+  border-radius: 50% !important;
+  background: #4a5568 !important;
+  border: 1px solid #243040 !important;
+}
+
+.fuse-handle--in {
+  background: #744210 !important;
+}
+
+.fuse-handle--connected {
+  background: #fbd38d !important;
+}
+
+/* ── Power Rail / Battery Node ───────────────────── */
+
+.power-rail-node {
+  background: var(--bg-node, #2d3748);
+  border: 1px solid #4a5568;
+  border-radius: 6px;
+  min-width: 90px;
+  position: relative;
+  cursor: pointer;
+  overflow: visible;
+}
+
+.power-rail-node--selected {
+  border-color: #fc8181;
+  box-shadow: 0 0 0 2px rgba(252,129,129,0.35);
+}
+
+.power-rail-node__label {
+  font-size: 10px;
+  font-weight: 700;
+  color: #fc8181;
+  font-family: monospace;
+  text-align: center;
+  padding: 5px 8px 4px;
+  border-bottom: 1px solid #4a5568;
+  letter-spacing: 0.02em;
+}
+
+.power-rail-node__terminal {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  height: 28px;
+  padding: 0 20px 0 8px;
+  position: relative;
+  border-bottom: 1px solid #2d3748;
+}
+
+.power-rail-node__terminal:last-child { border-bottom: none; }
+
+.power-rail-node__term-label {
+  font-size: 14px;
+  font-weight: 700;
+  font-family: monospace;
+  line-height: 1;
+}
+
+.power-rail-node__terminal--pos .power-rail-node__term-label { color: #fc8181; }
+.power-rail-node__terminal--neg .power-rail-node__term-label { color: #718096; }
+
+.power-handle {
+  width: 8px !important;
+  height: 8px !important;
+  border-radius: 50% !important;
+  background: #4a5568 !important;
+  border: 1px solid #243040 !important;
+}
+
+.power-handle--pos { background: #744210 !important; }
+.power-handle--neg { background: #2d3748 !important; }
+
+.power-handle--connected {
+  background: #fc8181 !important;
+}
+
+/* ── Power Bus Node ──────────────────────────────── */
+
+.power-bus-node {
+  background: var(--bg-node, #2d3748);
+  border: 1px solid #4a5568;
+  border-radius: 6px;
+  min-width: 110px;
+  position: relative;
+  cursor: pointer;
+  overflow: visible;
+}
+
+.power-bus-node--selected {
+  border-color: #f6ad55;
+  box-shadow: 0 0 0 2px rgba(246,173,85,0.35);
+}
+
+.power-bus-node__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 8px;
+  height: 28px;
+  border-bottom: 1px solid #4a5568;
+  background: #2a1f10;
+  border-radius: 5px 5px 0 0;
+}
+
+.power-bus-node__label {
+  font-size: 10px;
+  font-weight: 700;
+  color: #f6ad55;
+  font-family: monospace;
+  letter-spacing: 0.02em;
+}
+
+.power-bus-node__meta {
+  font-size: 9px;
+  color: #718096;
+}
+
+.power-bus-node__row {
+  display: flex;
+  align-items: center;
+  height: 28px;
+  padding: 0 8px;
+  border-bottom: 1px solid #2d3748;
+  position: relative;
+}
+
+.power-bus-node__row:last-child { border-bottom: none; }
+
+.power-bus-node__row-num {
+  font-size: 9px;
+  color: #718096;
+  width: 14px;
+  flex-shrink: 0;
+}
+
+.power-bus-node__row-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #f6ad55;
+  font-family: monospace;
+  flex: 1;
+  text-align: right;
+  padding-right: 6px;
+}
+
+.bus-handle {
+  width: 8px !important;
+  height: 8px !important;
+  border-radius: 50% !important;
+  background: #4a5568 !important;
+  border: 1px solid #243040 !important;
+}
+
+.bus-handle--in {
+  background: #744210 !important;
+}
+
+.bus-handle--connected {
+  background: #f6ad55 !important;
+}
+
 /* ── Properties Panel ───────────────────────────── */
 
 .properties-panel {
@@ -861,8 +1096,10 @@ body, #root {
   gap: 8px;
 }
 
-.bom-btn--export {
+.bom-bar__exports {
   margin-left: auto;
+  display: flex;
+  gap: 8px;
 }
 
 .bom-bar__toggle {

@@ -13,22 +13,26 @@ const DEFAULT_FORM = {
 
 export function Sidebar() {
   const {
-    addConnector, addCable, addSplice, addGround,
-    connectors, cables, splices, grounds, wires,
-    removeConnector, removeCable, removeSplice, removeGround,
+    addConnector, addCable, addSplice, addGround, addFuseBlock, addPowerRail, addPowerBus,
+    connectors, cables, splices, grounds, fuseBlocks, powerRails, powerBuses, wires,
+    removeConnector, removeCable, removeSplice, removeGround, removeFuseBlock, removePowerRail, removePowerBus,
     selectedId, select
   } = useHarnessStore(
     useShallow((s) => ({
       addConnector: s.addConnector, addCable: s.addCable, addSplice: s.addSplice, addGround: s.addGround,
-      connectors: s.connectors, cables: s.cables, splices: s.splices, grounds: s.grounds, wires: s.wires,
-      removeConnector: s.removeConnector, removeCable: s.removeCable, removeSplice: s.removeSplice, removeGround: s.removeGround,
+      addFuseBlock: s.addFuseBlock, addPowerRail: s.addPowerRail, addPowerBus: s.addPowerBus,
+      connectors: s.connectors, cables: s.cables, splices: s.splices, grounds: s.grounds,
+      fuseBlocks: s.fuseBlocks, powerRails: s.powerRails, powerBuses: s.powerBuses, wires: s.wires,
+      removeConnector: s.removeConnector, removeCable: s.removeCable,
+      removeSplice: s.removeSplice, removeGround: s.removeGround,
+      removeFuseBlock: s.removeFuseBlock, removePowerRail: s.removePowerRail, removePowerBus: s.removePowerBus,
       selectedId: s.selectedId, select: s.select
     }))
   )
 
   const [form, setForm] = useState(DEFAULT_FORM)
 
-  const issues = validateHarness(connectors, wires, splices, grounds)
+  const issues = validateHarness(connectors, wires, splices, grounds, fuseBlocks, powerRails, powerBuses)
   const errors = issues.filter((i) => i.severity === 'error')
   const warnings = issues.filter((i) => i.severity === 'warning')
 
@@ -63,9 +67,21 @@ export function Sidebar() {
         <label className="sidebar__label">Model Preset</label>
         <select className="sidebar__select" value={form.model}
           onChange={(e) => applyPreset(e.target.value)}>
-          {PRESETS.map((p) => (
-            <option key={p.model} value={p.model}>{p.model} ({p.terminalCount}-pin)</option>
-          ))}
+          {Array.from(
+            PRESETS.reduce((map, p) => {
+              const fam = p.family ?? 'Other'
+              if (!map.has(fam)) map.set(fam, [])
+              map.get(fam)!.push(p)
+              return map
+            }, new Map<string, typeof PRESETS>()),
+            ([family, presets]) => (
+              <optgroup key={family} label={family}>
+                {presets.map((p) => (
+                  <option key={p.model} value={p.model}>{p.model} ({p.terminalCount}-pin)</option>
+                ))}
+              </optgroup>
+            )
+          )}
           <option value="__custom__">Custom…</option>
         </select>
 
@@ -105,7 +121,7 @@ export function Sidebar() {
         </button>
       </div>
 
-      {/* ── Add Splice / Cable ──────────────────────────── */}
+      {/* ── Add Splice / Ground / Fuse / Power ─────────── */}
       <div className="sidebar__section sidebar__row--gap">
         <button className="sidebar__btn sidebar__btn--secondary sidebar__btn--half"
           onClick={() => addSplice()}>
@@ -114,6 +130,23 @@ export function Sidebar() {
         <button className="sidebar__btn sidebar__btn--secondary sidebar__btn--half"
           onClick={() => addGround()}>
           ⏚ Ground
+        </button>
+      </div>
+      <div className="sidebar__section sidebar__row--gap">
+        <button className="sidebar__btn sidebar__btn--secondary sidebar__btn--half"
+          onClick={() => addFuseBlock()}>
+          ⚡ Fuse Block
+        </button>
+        <button className="sidebar__btn sidebar__btn--secondary sidebar__btn--half"
+          onClick={() => addPowerRail()}>
+          ⚑ Battery
+        </button>
+      </div>
+      <div className="sidebar__section sidebar__row--gap">
+        <button className="sidebar__btn sidebar__btn--secondary"
+          style={{ width: '100%' }}
+          onClick={() => addPowerBus()}>
+          ⚡ Power Rail
         </button>
       </div>
       <div className="sidebar__section sidebar__row--gap">
@@ -172,6 +205,60 @@ export function Sidebar() {
               </div>
               <button className="sidebar__btn--icon" title="Remove"
                 onClick={(e) => { e.stopPropagation(); removeGround(g.id) }}>×</button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* ── Fuse Blocks ─────────────────────────────────── */}
+      {fuseBlocks.length > 0 && (
+        <div className="sidebar__section sidebar__section--list">
+          <h3 className="sidebar__title">Fuse Blocks ({fuseBlocks.length})</h3>
+          {fuseBlocks.map((fb) => (
+            <div key={fb.id} className={`sidebar__item${selectedId === fb.id ? ' sidebar__item--active' : ''}`}
+              onClick={() => select(fb.id, 'fuseBlock')}>
+              <div>
+                <div className="sidebar__item-name">⚡ {fb.label}</div>
+                <div className="sidebar__item-meta">{fb.circuits}-circuit</div>
+              </div>
+              <button className="sidebar__btn--icon" title="Remove"
+                onClick={(e) => { e.stopPropagation(); removeFuseBlock(fb.id) }}>×</button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* ── Power Rails ──────────────────────────────────── */}
+      {powerRails.length > 0 && (
+        <div className="sidebar__section sidebar__section--list">
+          <h3 className="sidebar__title">Batteries ({powerRails.length})</h3>
+          {powerRails.map((pr) => (
+            <div key={pr.id} className={`sidebar__item${selectedId === pr.id ? ' sidebar__item--active' : ''}`}
+              onClick={() => select(pr.id, 'powerRail')}>
+              <div>
+                <div className="sidebar__item-name">⚑ {pr.label}</div>
+                <div className="sidebar__item-meta">+/− terminals</div>
+              </div>
+              <button className="sidebar__btn--icon" title="Remove"
+                onClick={(e) => { e.stopPropagation(); removePowerRail(pr.id) }}>×</button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* ── Power Buses ─────────────────────────────────── */}
+      {powerBuses.length > 0 && (
+        <div className="sidebar__section sidebar__section--list">
+          <h3 className="sidebar__title">Power Rails ({powerBuses.length})</h3>
+          {powerBuses.map((pb) => (
+            <div key={pb.id} className={`sidebar__item${selectedId === pb.id ? ' sidebar__item--active' : ''}`}
+              onClick={() => select(pb.id, 'powerBus')}>
+              <div>
+                <div className="sidebar__item-name">⚡ {pb.label}</div>
+                <div className="sidebar__item-meta">{pb.outputCount} outputs</div>
+              </div>
+              <button className="sidebar__btn--icon" title="Remove"
+                onClick={(e) => { e.stopPropagation(); removePowerBus(pb.id) }}>×</button>
             </div>
           ))}
         </div>

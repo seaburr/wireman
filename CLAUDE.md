@@ -11,7 +11,23 @@ npm install       # first time only
 npm run dev       # launches Electron with hot-reload
 npm run package   # builds distributable DMG/EXE/AppImage → dist/
 npm run typecheck # type-check only, no build
+npm test          # run vitest unit tests
 ```
+
+## Testing requirements
+
+**Every feature addition must include unit tests.** Tests live in `src/renderer/src/__tests__/`:
+
+- `models.test.ts` — pure functions: factories, BOM, build steps, validation, layouts
+- `store.test.ts` — Zustand actions: add/remove/update/cascade behavior, undo/redo
+
+Coverage expectations per feature type:
+- **New node type** (e.g. FuseBlock, PowerRail): factory creates correct defaults, handle ID helpers return correct strings, store add/remove/cascade/undo, BOM lines generated correctly
+- **New connector preset family**: appears in `CONNECTOR_PRESETS` with correct `family`, layout is registered in `LAYOUTS` or auto-generates correctly, pricing is non-zero
+- **New BOM category**: quantity calculation, grouping logic, edge cases (zero items, unconnected wires)
+- **New export function**: output contains key strings, handles empty harness, includes new node types
+
+Run `npm run typecheck && npm test` before considering any feature complete.
 
 ## Architecture
 
@@ -38,7 +54,7 @@ src/renderer/src/
 
 **Handle positioning**: Connector node handles are absolutely positioned on the outer left/right edges of the node. Their Y coordinate is computed in JS using `useLayoutEffect` to measure the face div's `offsetTop` after mount — do NOT use the old `HDR` constant approach (it was wrong). The correct node width formula is `(FACE_MARGIN + PAD) * 2 + cols * CELL + (cols - 1) * GAP` where `FACE_MARGIN = 8` (from CSS `.connector-face { margin: 6px 8px 2px }`).
 
-**Undo/redo**: Every mutating store action calls `pushHistory()` before mutating. History stores snapshots of `{connectors, wires, cables, splices, grounds}`. Max 50 steps.
+**Undo/redo**: Every mutating store action calls `pushHistory()` before mutating. History stores snapshots of `{connectors, wires, cables, splices, grounds, fuseBlocks, powerRails}`. Max 50 steps. Move actions (position-only drag) do NOT push history.
 
 **File format**: `.wireman` JSON, `version: 1`. Load accepts any version ≤ `FILE_VERSION` (older files fine), warns on newer. New optional fields use `?? default` — no version bump needed for additions.
 
@@ -52,7 +68,9 @@ src/renderer/src/
 - `Cable` — groups wires with a shared `lengthInches`
 - `SpliceNode` — junction with N handles (`${spliceId}_${i}`)
 - `GroundNode` — chassis ground with auto-growing handles (`${groundId}_gnd_${i}`)
-- `CONNECTOR_PRESETS` — shared Deutsch DTM/DT preset data (imported by both Sidebar and PropertiesPanel)
+- `FuseBlock` — distribution block with one power-in handle (`${fuseId}_in`) and N circuit-out handles (`${fuseId}_out_${i}`); stores `ampRatings[]` per circuit
+- `PowerRail` — positive supply rail, mirrors GroundNode with auto-growing handles (`${railId}_pwr_${i}`)
+- `CONNECTOR_PRESETS` — grouped by `family`: Deutsch DTM/DT, TE Superseal 1.5, Molex Micro-Fit 3.0, TE Weather Pack, Relay (5-pin ISO-280), Terminal Block
 
 ## Pitfalls to avoid
 

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 import { useHarnessStore } from '../../store'
-import { WIRE_COLORS, AWG_DIAMETERS, WireColor, CONNECTOR_PRESETS, ConnectorNode } from '../../models'
+import { WIRE_COLORS, AWG_DIAMETERS, WireColor, CONNECTOR_PRESETS, ConnectorNode, FuseBlock, powerRailPosHandle, powerRailNegHandle, powerBusInHandle, powerBusOutHandle } from '../../models'
 
 function ConnectorReconfig({ connector }: { connector: ConnectorNode }) {
   const changeConnectorModel = useHarnessStore((s) => s.changeConnectorModel)
@@ -42,9 +42,21 @@ function ConnectorReconfig({ connector }: { connector: ConnectorNode }) {
       <select className="properties-panel__select"
         value={isCustom ? '__custom__' : model}
         onChange={(e) => applyPreset(e.target.value)}>
-        {CONNECTOR_PRESETS.map((p) => (
-          <option key={p.model} value={p.model}>{p.model} ({p.terminalCount}-pin)</option>
-        ))}
+        {Array.from(
+          CONNECTOR_PRESETS.reduce((map, p) => {
+            const fam = p.family ?? 'Other'
+            if (!map.has(fam)) map.set(fam, [])
+            map.get(fam)!.push(p)
+            return map
+          }, new Map<string, typeof CONNECTOR_PRESETS>()),
+          ([family, presets]) => (
+            <optgroup key={family} label={family}>
+              {presets.map((p) => (
+                <option key={p.model} value={p.model}>{p.model} ({p.terminalCount}-pin)</option>
+              ))}
+            </optgroup>
+          )
+        )}
         <option value="__custom__">Custom…</option>
       </select>
 
@@ -88,20 +100,23 @@ function ConnectorReconfig({ connector }: { connector: ConnectorNode }) {
 
 export function PropertiesPanel() {
   const {
-    connectors, wires, cables, splices, grounds,
+    connectors, wires, cables, splices, grounds, fuseBlocks, powerRails, powerBuses,
     selectedId, selectedType,
-    updateWire, updateConnector, updateCable, updateSplice, updateGround,
-    removeWire, removeConnector, removeCable, removeSplice, removeGround,
+    updateWire, updateConnector, updateCable, updateSplice, updateGround, updateFuseBlock, updatePowerRail, updatePowerBus,
+    removeWire, removeConnector, removeCable, removeSplice, removeGround, removeFuseBlock, removePowerRail, removePowerBus,
     assignWireToCable, toggleCableCollapsed
   } = useHarnessStore(
     useShallow((s) => ({
       connectors: s.connectors, wires: s.wires, cables: s.cables,
       splices: s.splices, grounds: s.grounds,
+      fuseBlocks: s.fuseBlocks, powerRails: s.powerRails, powerBuses: s.powerBuses,
       selectedId: s.selectedId, selectedType: s.selectedType,
       updateWire: s.updateWire, updateConnector: s.updateConnector,
       updateCable: s.updateCable, updateSplice: s.updateSplice, updateGround: s.updateGround,
+      updateFuseBlock: s.updateFuseBlock, updatePowerRail: s.updatePowerRail, updatePowerBus: s.updatePowerBus,
       removeWire: s.removeWire, removeConnector: s.removeConnector,
       removeCable: s.removeCable, removeSplice: s.removeSplice, removeGround: s.removeGround,
+      removeFuseBlock: s.removeFuseBlock, removePowerRail: s.removePowerRail, removePowerBus: s.removePowerBus,
       assignWireToCable: s.assignWireToCable, toggleCableCollapsed: s.toggleCableCollapsed
     }))
   )
@@ -395,6 +410,165 @@ export function PropertiesPanel() {
 
         <button className="properties-panel__btn properties-panel__btn--danger"
           onClick={() => removeCable(cable.id)}>Delete Cable</button>
+      </aside>
+    )
+  }
+
+  // ── Fuse Block ─────────────────────────────────────────────────────────────
+
+  if (selectedType === 'fuseBlock') {
+    const fb = fuseBlocks.find((f) => f.id === selectedId)
+    if (!fb) return null
+
+    const allHandles = [
+      `${fb.id}_in`,
+      ...Array.from({ length: fb.circuits }, (_, i) => `${fb.id}_out_${i}`)
+    ]
+    const connectedWires = wires.filter((w) =>
+      allHandles.some((hid) => w.startTerminalId === hid || w.endTerminalId === hid)
+    )
+
+    return (
+      <aside className="properties-panel">
+        <h3 className="properties-panel__title">⚡ Fuse Block</h3>
+
+        <label className="properties-panel__label">Label</label>
+        <input className="properties-panel__input" value={fb.label}
+          onChange={(e) => updateFuseBlock(fb.id, { label: e.target.value })} />
+
+        <label className="properties-panel__label">Circuits</label>
+        <input className="properties-panel__input" type="number" min={1} max={12}
+          value={fb.circuits}
+          onChange={(e) => updateFuseBlock(fb.id, { circuits: Math.max(1, Math.min(12, parseInt(e.target.value) || 1)) })} />
+
+        <div className="properties-panel__info-block">
+          <div className="properties-panel__info-row">
+            <span>Connected Wires</span><span>{connectedWires.length}</span>
+          </div>
+        </div>
+
+        <div className="properties-panel__terminals">
+          <h4 className="properties-panel__subtitle">Circuit Amp Ratings</h4>
+          {Array.from({ length: fb.circuits }, (_, i) => (
+            <div key={i} className="terminal-row">
+              <span className="terminal-row__index">{i + 1}</span>
+              <input
+                className="terminal-row__input"
+                type="number" min={1} max={100} step={5}
+                value={fb.ampRatings[i] ?? 10}
+                onChange={(e) => {
+                  const ratings = [...fb.ampRatings]
+                  ratings[i] = parseInt(e.target.value) || 10
+                  updateFuseBlock(fb.id, { ampRatings: ratings } as Partial<Omit<FuseBlock, 'id'>>)
+                }}
+              />
+              <span className="terminal-row__empty">A</span>
+            </div>
+          ))}
+        </div>
+
+        <button className="properties-panel__btn properties-panel__btn--danger"
+          onClick={() => removeFuseBlock(fb.id)}>Delete Fuse Block</button>
+      </aside>
+    )
+  }
+
+  // ── Power Rail ─────────────────────────────────────────────────────────────
+
+  if (selectedType === 'powerRail') {
+    const pr = powerRails.find((r) => r.id === selectedId)
+    if (!pr) return null
+
+    const posId = powerRailPosHandle(pr.id)
+    const negId = powerRailNegHandle(pr.id)
+    const connectedWires = wires.filter((w) =>
+      w.startTerminalId === posId || w.endTerminalId === posId ||
+      w.startTerminalId === negId || w.endTerminalId === negId
+    )
+
+    return (
+      <aside className="properties-panel">
+        <h3 className="properties-panel__title">⚑ Battery</h3>
+
+        <label className="properties-panel__label">Label</label>
+        <input className="properties-panel__input" value={pr.label}
+          onChange={(e) => updatePowerRail(pr.id, { label: e.target.value })} />
+
+        <div className="properties-panel__info-block">
+          <div className="properties-panel__info-row">
+            <span>Wires connected</span><span>{connectedWires.length}</span>
+          </div>
+        </div>
+
+        {connectedWires.length > 0 && (
+          <div className="properties-panel__terminals">
+            <h4 className="properties-panel__subtitle">Connected Wires</h4>
+            {connectedWires.map((w) => (
+              <div key={w.id} className="terminal-row">
+                <span className="terminal-row__wire"
+                  style={{ borderLeftColor: WIRE_COLORS[w.color] ?? '#718096' }}>
+                  {w.name}
+                </span>
+                <span className="terminal-row__empty">{w.awg} AWG</span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <button className="properties-panel__btn properties-panel__btn--danger"
+          onClick={() => removePowerRail(pr.id)}>Delete Battery</button>
+      </aside>
+    )
+  }
+
+  // ── Power Bus ──────────────────────────────────────────────────────────────
+
+  if (selectedType === 'powerBus') {
+    const pb = powerBuses.find((b) => b.id === selectedId)
+    if (!pb) return null
+
+    const allHandles = [
+      powerBusInHandle(pb.id),
+      ...Array.from({ length: pb.outputCount }, (_, i) => powerBusOutHandle(pb.id, i))
+    ]
+    const connectedWires = wires.filter((w) =>
+      allHandles.some((hid) => w.startTerminalId === hid || w.endTerminalId === hid)
+    )
+
+    return (
+      <aside className="properties-panel">
+        <h3 className="properties-panel__title">⚡ Power Rail</h3>
+
+        <label className="properties-panel__label">Label</label>
+        <input className="properties-panel__input" value={pb.label}
+          onChange={(e) => updatePowerBus(pb.id, { label: e.target.value })} />
+
+        <div className="properties-panel__info-block">
+          <div className="properties-panel__info-row">
+            <span>Outputs</span><span>{pb.outputCount}</span>
+          </div>
+          <div className="properties-panel__info-row">
+            <span>Wires connected</span><span>{connectedWires.length}</span>
+          </div>
+        </div>
+
+        {connectedWires.length > 0 && (
+          <div className="properties-panel__terminals">
+            <h4 className="properties-panel__subtitle">Connected Wires</h4>
+            {connectedWires.map((w) => (
+              <div key={w.id} className="terminal-row">
+                <span className="terminal-row__wire"
+                  style={{ borderLeftColor: WIRE_COLORS[w.color] ?? '#718096' }}>
+                  {w.name}
+                </span>
+                <span className="terminal-row__empty">{w.awg} AWG</span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <button className="properties-panel__btn properties-panel__btn--danger"
+          onClick={() => removePowerBus(pb.id)}>Delete Power Rail</button>
       </aside>
     )
   }

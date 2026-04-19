@@ -36,6 +36,31 @@ const LAYOUTS: Record<string, PinLayout> = {
   'DT-6':  [[1, 4], [2, 5], [3, 6]],
   'DT-8':  [[1, 5], [2, 6], [3, 7], [4, 8]],
   'DT-12': [[1, 7], [2, 8], [3, 9], [4, 10], [5, 11], [6, 12]],
+  // TE Superseal 1.5
+  'SS1.5-1': [[1, null]],
+  'SS1.5-2': [[1, 2]],
+  'SS1.5-3': [[1, 2], [3, null]],
+  'SS1.5-4': [[1, 2], [3, 4]],
+  'SS1.5-6': [[1, 4], [2, 5], [3, 6]],
+  // Molex Micro-Fit 3.0
+  'MF3-2':  [[1, 2]],
+  'MF3-4':  [[1, 2], [3, 4]],
+  'MF3-6':  [[1, 2], [3, 4], [5, 6]],
+  'MF3-8':  [[1, 2], [3, 4], [5, 6], [7, 8]],
+  'MF3-12': [[1, 2], [3, 4], [5, 6], [7, 8], [9, 10], [11, 12]],
+  // TE Weather Pack
+  'WP-1': [[1, null]],
+  'WP-2': [[1, 2]],
+  'WP-3': [[1, 2], [3, null]],
+  'WP-4': [[1, 2], [3, 4]],
+  // Relay (5-pin ISO 280 / Bosch standard: 30,85,86,87,87a → pins 1-5)
+  'RELAY-5': [[1, 2], [3, 4], [5, null]],
+  // Terminal blocks
+  'TB-2':  [[1, 2]],
+  'TB-4':  [[1, 2], [3, 4]],
+  'TB-6':  [[1, 2], [3, 4], [5, 6]],
+  'TB-8':  [[1, 2], [3, 4], [5, 6], [7, 8]],
+  'TB-12': [[1, 2], [3, 4], [5, 6], [7, 8], [9, 10], [11, 12]],
 }
 
 export function getPinLayout(model: string, terminalCount: number): PinLayout {
@@ -133,17 +158,48 @@ export interface ConnectorPreset {
   costUsd: number
   bootModel: string
   bootCostUsd: number
+  family?: string
 }
 
 export const CONNECTOR_PRESETS: ConnectorPreset[] = [
-  { model: 'DTM-2',  terminalCount: 2,  costUsd: 3.50,  bootModel: 'HTAT-16-2',  bootCostUsd: 0.15 },
-  { model: 'DTM-4',  terminalCount: 4,  costUsd: 5.00,  bootModel: 'HTAT-16-4',  bootCostUsd: 0.18 },
-  { model: 'DTM-6',  terminalCount: 6,  costUsd: 6.50,  bootModel: 'HTAT-16-6',  bootCostUsd: 0.20 },
-  { model: 'DTM-8',  terminalCount: 8,  costUsd: 8.00,  bootModel: 'HTAT-16-8',  bootCostUsd: 0.22 },
-  { model: 'DTM-12', terminalCount: 12, costUsd: 11.00, bootModel: 'HTAT-16-12', bootCostUsd: 0.28 },
-  { model: 'DT-2',   terminalCount: 2,  costUsd: 2.50,  bootModel: 'WP-2',       bootCostUsd: 0.10 },
-  { model: 'DT-4',   terminalCount: 4,  costUsd: 4.00,  bootModel: 'WP-4',       bootCostUsd: 0.12 },
-  { model: 'DT-6',   terminalCount: 6,  costUsd: 5.50,  bootModel: 'WP-6',       bootCostUsd: 0.15 },
+  // ── Deutsch DTM ──────────────────────────────────────────────────────────
+  { family: 'Deutsch DTM', model: 'DTM-2',  terminalCount: 2,  costUsd: 3.50,  bootModel: 'HTAT-16-2',  bootCostUsd: 0.15 },
+  { family: 'Deutsch DTM', model: 'DTM-4',  terminalCount: 4,  costUsd: 5.00,  bootModel: 'HTAT-16-4',  bootCostUsd: 0.18 },
+  { family: 'Deutsch DTM', model: 'DTM-6',  terminalCount: 6,  costUsd: 6.50,  bootModel: 'HTAT-16-6',  bootCostUsd: 0.20 },
+  { family: 'Deutsch DTM', model: 'DTM-8',  terminalCount: 8,  costUsd: 8.00,  bootModel: 'HTAT-16-8',  bootCostUsd: 0.22 },
+  { family: 'Deutsch DTM', model: 'DTM-12', terminalCount: 12, costUsd: 11.00, bootModel: 'HTAT-16-12', bootCostUsd: 0.28 },
+  // ── Deutsch DT ───────────────────────────────────────────────────────────
+  { family: 'Deutsch DT', model: 'DT-2',   terminalCount: 2,  costUsd: 2.50,  bootModel: 'WP-2',  bootCostUsd: 0.10 },
+  { family: 'Deutsch DT', model: 'DT-4',   terminalCount: 4,  costUsd: 4.00,  bootModel: 'WP-4',  bootCostUsd: 0.12 },
+  { family: 'Deutsch DT', model: 'DT-6',   terminalCount: 6,  costUsd: 5.50,  bootModel: 'WP-6',  bootCostUsd: 0.15 },
+  { family: 'Deutsch DT', model: 'DT-8',   terminalCount: 8,  costUsd: 7.00,  bootModel: 'WP-8',  bootCostUsd: 0.18 },
+  { family: 'Deutsch DT', model: 'DT-12',  terminalCount: 12, costUsd: 9.50,  bootModel: 'WP-12', bootCostUsd: 0.24 },
+  // ── TE Superseal 1.5 ─────────────────────────────────────────────────────
+  { family: 'TE Superseal 1.5', model: 'SS1.5-1', terminalCount: 1,  costUsd: 2.00, bootModel: 'SS-SEAL-1', bootCostUsd: 0.14 },
+  { family: 'TE Superseal 1.5', model: 'SS1.5-2', terminalCount: 2,  costUsd: 2.60, bootModel: 'SS-SEAL-2', bootCostUsd: 0.16 },
+  { family: 'TE Superseal 1.5', model: 'SS1.5-3', terminalCount: 3,  costUsd: 3.10, bootModel: 'SS-SEAL-3', bootCostUsd: 0.18 },
+  { family: 'TE Superseal 1.5', model: 'SS1.5-4', terminalCount: 4,  costUsd: 3.60, bootModel: 'SS-SEAL-4', bootCostUsd: 0.20 },
+  { family: 'TE Superseal 1.5', model: 'SS1.5-6', terminalCount: 6,  costUsd: 4.60, bootModel: 'SS-SEAL-6', bootCostUsd: 0.24 },
+  // ── Molex Micro-Fit 3.0 ──────────────────────────────────────────────────
+  { family: 'Molex Micro-Fit 3.0', model: 'MF3-2',  terminalCount: 2,  costUsd: 1.50, bootModel: '', bootCostUsd: 0.00 },
+  { family: 'Molex Micro-Fit 3.0', model: 'MF3-4',  terminalCount: 4,  costUsd: 2.00, bootModel: '', bootCostUsd: 0.00 },
+  { family: 'Molex Micro-Fit 3.0', model: 'MF3-6',  terminalCount: 6,  costUsd: 2.60, bootModel: '', bootCostUsd: 0.00 },
+  { family: 'Molex Micro-Fit 3.0', model: 'MF3-8',  terminalCount: 8,  costUsd: 3.10, bootModel: '', bootCostUsd: 0.00 },
+  { family: 'Molex Micro-Fit 3.0', model: 'MF3-12', terminalCount: 12, costUsd: 4.10, bootModel: '', bootCostUsd: 0.00 },
+  // ── TE Weather Pack ───────────────────────────────────────────────────────
+  { family: 'TE Weather Pack', model: 'WP-1', terminalCount: 1, costUsd: 1.50, bootModel: 'WP-SEAL-1', bootCostUsd: 0.12 },
+  { family: 'TE Weather Pack', model: 'WP-2', terminalCount: 2, costUsd: 2.00, bootModel: 'WP-SEAL-2', bootCostUsd: 0.15 },
+  { family: 'TE Weather Pack', model: 'WP-3', terminalCount: 3, costUsd: 2.50, bootModel: 'WP-SEAL-3', bootCostUsd: 0.18 },
+  { family: 'TE Weather Pack', model: 'WP-4', terminalCount: 4, costUsd: 3.00, bootModel: 'WP-SEAL-4', bootCostUsd: 0.20 },
+  // ── Relay ─────────────────────────────────────────────────────────────────
+  // Pins: 1=30(common), 2=85(coil−), 3=86(coil+), 4=87(NO), 5=87a(NC)
+  { family: 'Relay', model: 'RELAY-5', terminalCount: 5, costUsd: 0.85, bootModel: '', bootCostUsd: 0.00 },
+  // ── Terminal Blocks ───────────────────────────────────────────────────────
+  { family: 'Terminal Block', model: 'TB-2',  terminalCount: 2,  costUsd: 1.20, bootModel: '', bootCostUsd: 0.00 },
+  { family: 'Terminal Block', model: 'TB-4',  terminalCount: 4,  costUsd: 2.00, bootModel: '', bootCostUsd: 0.00 },
+  { family: 'Terminal Block', model: 'TB-6',  terminalCount: 6,  costUsd: 2.80, bootModel: '', bootCostUsd: 0.00 },
+  { family: 'Terminal Block', model: 'TB-8',  terminalCount: 8,  costUsd: 3.50, bootModel: '', bootCostUsd: 0.00 },
+  { family: 'Terminal Block', model: 'TB-12', terminalCount: 12, costUsd: 5.00, bootModel: '', bootCostUsd: 0.00 },
 ]
 
 // ── Factories ──────────────────────────────────────────────────────────────
@@ -183,6 +239,54 @@ export function groundHandleId(groundId: string, idx: number): string {
   return `${groundId}_gnd_${idx}`
 }
 
+/** Fuse/relay distribution block. Each circuit slot has one output handle; there is one shared power-input handle. */
+export interface FuseBlock extends Record<string, unknown> {
+  id: string
+  label: string
+  circuits: number
+  ampRatings: number[]
+  position: { x: number; y: number }
+}
+
+/** Battery / power source node with two fixed terminals: positive and negative. */
+export interface PowerRail extends Record<string, unknown> {
+  id: string
+  label: string
+  position: { x: number; y: number }
+}
+
+/**
+ * Power distribution bus — one power-feed input, N auto-growing output taps.
+ * Unlike FuseBlock there are no per-output amp ratings; unlike Battery there
+ * is more than one output tap.
+ */
+export interface PowerBus extends Record<string, unknown> {
+  id: string
+  label: string
+  /** Total output tap slots. Grows automatically as outputs are connected. */
+  outputCount: number
+  position: { x: number; y: number }
+}
+
+export function createFuseBlock(position: { x: number; y: number }): FuseBlock {
+  return { id: nanoid(8), label: 'FUSE', circuits: 4, ampRatings: [10, 10, 10, 10], position }
+}
+
+export function createPowerRail(position: { x: number; y: number }): PowerRail {
+  return { id: nanoid(8), label: 'Battery', position }
+}
+
+export function createPowerBus(position: { x: number; y: number }): PowerBus {
+  return { id: nanoid(8), label: 'PWR', outputCount: 2, position }
+}
+
+export function fuseBlockInHandle(fuseId: string): string { return `${fuseId}_in` }
+export function fuseBlockOutHandle(fuseId: string, idx: number): string { return `${fuseId}_out_${idx}` }
+export function powerRailPosHandle(railId: string): string { return `${railId}_pos` }
+export function powerRailNegHandle(railId: string): string { return `${railId}_neg` }
+export function powerBusInHandle(busId: string): string { return `${busId}_bus_in` }
+export function powerBusOutHandle(busId: string, idx: number): string { return `${busId}_bus_${idx}` }
+
 /** Splice handle IDs follow the pattern `<spliceId>_<idx>` */
 export function spliceHandleId(spliceId: string, idx: number): string {
   return `${spliceId}_${idx}`
@@ -202,7 +306,7 @@ export interface BomLine {
   qty: number
   unitCostUsd: number
   totalCostUsd: number
-  category: 'connector' | 'boot' | 'wire' | 'splice'
+  category: 'connector' | 'boot' | 'wire' | 'splice' | 'fuse' | 'heatshrink'
 }
 
 export interface Bom {
@@ -221,9 +325,18 @@ const MATERIAL_MARGIN = 0.30
 const MIN_PER_TERMINAL = 10
 const SPLICE_COST = 0.25
 
+function heatShrinkSizeFor(awg: string): { size: string; partNumber: string; costPer: number } {
+  const n = parseInt(awg)
+  if (n >= 22) return { size: '3/16"', partNumber: 'HSHRK-3/16', costPer: 0.05 }
+  if (n >= 18) return { size: '1/4"',  partNumber: 'HSHRK-1/4',  costPer: 0.07 }
+  if (n >= 14) return { size: '3/8"',  partNumber: 'HSHRK-3/8',  costPer: 0.10 }
+  return           { size: '1/2"',  partNumber: 'HSHRK-1/2',  costPer: 0.12 }
+}
+
 export function generateBom(
   connectors: ConnectorNode[], wires: Wire[],
-  cables: Cable[], splices: SpliceNode[], grounds: GroundNode[]
+  cables: Cable[], splices: SpliceNode[], grounds: GroundNode[],
+  fuseBlocks: FuseBlock[] = [], powerRails: PowerRail[] = [], powerBuses: PowerBus[] = []
 ): Bom {
   const lines: BomLine[] = []
 
@@ -272,6 +385,50 @@ export function generateBom(
       totalCostUsd: feet * unitCost, category: 'wire' })
   }
 
+  // Fuse blocks
+  if (fuseBlocks.length > 0) {
+    const fbGroups = new Map<number, number>()
+    let totalFuses = 0
+    for (const fb of fuseBlocks) {
+      fbGroups.set(fb.circuits, (fbGroups.get(fb.circuits) ?? 0) + 1)
+      totalFuses += fb.circuits
+    }
+    for (const [circuits, qty] of fbGroups.entries()) {
+      const unitCost = circuits <= 4 ? 8.00 : circuits <= 8 ? 12.00 : 18.00
+      lines.push({ description: `Fuse Block – ${circuits}-Circuit`, partNumber: `FBLOCK-${circuits}C`,
+        qty, unitCostUsd: unitCost, totalCostUsd: qty * unitCost, category: 'fuse' })
+    }
+    lines.push({ description: 'Mini Blade Fuse (assorted)', partNumber: 'FUSE-MINI',
+      qty: totalFuses, unitCostUsd: 0.35, totalCostUsd: totalFuses * 0.35, category: 'fuse' })
+  }
+
+  // Power rails / batteries (stud / ring terminal per rail)
+  if (powerRails.length > 0) {
+    lines.push({ description: 'Power Distribution Stud', partNumber: 'TERM-POWER',
+      qty: powerRails.length, unitCostUsd: 0.50, totalCostUsd: powerRails.length * 0.50,
+      category: 'fuse' })
+  }
+
+  // Power buses (distribution bus bar per node)
+  if (powerBuses.length > 0) {
+    lines.push({ description: 'Power Distribution Bus', partNumber: 'BUS-DIST',
+      qty: powerBuses.length, unitCostUsd: 5.00, totalCostUsd: powerBuses.length * 5.00,
+      category: 'fuse' })
+  }
+
+  // Heat shrink — 2 pieces per connected wire end, grouped by size
+  const hshrinkGroups = new Map<string, { size: string; qty: number; costPer: number }>()
+  for (const w of wires) {
+    if (!w.startTerminalId || !w.endTerminalId) continue
+    const { size, partNumber, costPer } = heatShrinkSizeFor(w.awg)
+    if (!hshrinkGroups.has(partNumber)) hshrinkGroups.set(partNumber, { size, qty: 0, costPer })
+    hshrinkGroups.get(partNumber)!.qty += 2
+  }
+  for (const [partNumber, { size, qty, costPer }] of hshrinkGroups.entries()) {
+    lines.push({ description: `Heat Shrink ${size}`, partNumber,
+      qty, unitCostUsd: costPer, totalCostUsd: qty * costPer, category: 'heatshrink' })
+  }
+
   const totalMaterialCostUsd = lines.reduce((s, l) => s + l.totalCostUsd, 0)
   const terminalCount = connectors.reduce((s, c) => s + c.terminals.length, 0)
   const estimatedLaborMin = terminalCount * MIN_PER_TERMINAL
@@ -288,6 +445,265 @@ export function generateBom(
 
 function r2(n: number) { return Math.round(n * 100) / 100 }
 
+// ── Build Steps ────────────────────────────────────────────────────────────
+
+function fmtLen(inches: number): string {
+  const ft = Math.floor(inches / 12)
+  const inn = inches % 12
+  if (ft === 0) return `${inn}"`
+  if (inn === 0) return `${ft}'`
+  return `${ft}' ${inn}"`
+}
+
+function box(text: string): string {
+  const border = '='.repeat(text.length + 2)
+  return `${border}\n ${text}\n${border}`
+}
+
+export function generateBuildSteps(
+  connectors: ConnectorNode[], wires: Wire[],
+  cables: Cable[], splices: SpliceNode[], grounds: GroundNode[],
+  projectName: string,
+  fuseBlocks: FuseBlock[] = [], powerRails: PowerRail[] = [], powerBuses: PowerBus[] = []
+): string {
+  const lines: string[] = []
+
+  // Index terminals and nodes for destination lookups
+  const terminalMap = new Map<string, { connectorName: string; terminalName: string }>()
+  for (const c of connectors) {
+    for (const t of c.terminals) {
+      terminalMap.set(t.id, { connectorName: c.name, terminalName: t.name })
+    }
+  }
+  // Splice handles: spliceId_idx
+  const spliceHandleMap = new Map<string, string>()
+  for (const s of splices) {
+    for (let i = 0; i < s.handleCount; i++) {
+      spliceHandleMap.set(`${s.id}_${i}`, s.label || 'Splice')
+    }
+  }
+  // Ground handles: groundId_gnd_idx
+  const groundHandleMap = new Map<string, string>()
+  for (const g of grounds) {
+    for (let i = 0; i < g.handleCount; i++) {
+      groundHandleMap.set(`${g.id}_gnd_${i}`, g.label || 'GND')
+    }
+  }
+  // Fuse block handles: fuseId_in and fuseId_out_i
+  const fuseHandleMap = new Map<string, string>()
+  for (const fb of fuseBlocks) {
+    fuseHandleMap.set(fuseBlockInHandle(fb.id), `${fb.label} PWR-IN`)
+    for (let i = 0; i < fb.circuits; i++) {
+      fuseHandleMap.set(fuseBlockOutHandle(fb.id, i), `${fb.label} Circuit ${i + 1}`)
+    }
+  }
+  // Battery handles: _pos and _neg
+  const powerRailHandleMap = new Map<string, string>()
+  for (const pr of powerRails) {
+    powerRailHandleMap.set(powerRailPosHandle(pr.id), `${pr.label} (+)`)
+    powerRailHandleMap.set(powerRailNegHandle(pr.id), `${pr.label} (−)`)
+  }
+  // Power bus handles: _bus_in and _bus_0, _bus_1, ...
+  const powerBusHandleMap = new Map<string, string>()
+  for (const pb of powerBuses) {
+    powerBusHandleMap.set(powerBusInHandle(pb.id), `${pb.label} PWR-IN`)
+    for (let i = 0; i < pb.outputCount; i++) {
+      powerBusHandleMap.set(powerBusOutHandle(pb.id, i), `${pb.label} Out ${i + 1}`)
+    }
+  }
+
+  function resolveEndpoint(handleId: string | null): string {
+    if (!handleId) return 'unconnected'
+    const t = terminalMap.get(handleId)
+    if (t) return `${t.connectorName} – ${t.terminalName}`
+    const s = spliceHandleMap.get(handleId)
+    if (s) return s
+    const g = groundHandleMap.get(handleId)
+    if (g) return g
+    const f = fuseHandleMap.get(handleId)
+    if (f) return f
+    const p = powerRailHandleMap.get(handleId)
+    if (p) return p
+    const b = powerBusHandleMap.get(handleId)
+    if (b) return b
+    return 'unconnected'
+  }
+
+  lines.push(`Project: ${projectName}`)
+  lines.push(`Generated: ${new Date().toLocaleDateString()}`)
+  lines.push('')
+
+  // One section per connector
+  for (const c of connectors) {
+    lines.push(box(`${c.name} – ${c.model}`))
+    lines.push('')
+
+    const connectorWireIds = new Set(c.terminals.map((t) => t.wireId).filter(Boolean) as string[])
+    const connectorWires = wires.filter((w) => connectorWireIds.has(w.id))
+
+    for (const t of c.terminals) {
+      if (!t.wireId) {
+        lines.push(`  ${t.name} – [empty]`)
+        continue
+      }
+      const w = wires.find((w) => w.id === t.wireId)
+      if (!w) { lines.push(`  ${t.name} – [empty]`); continue }
+
+      const cable = w.cableId ? cables.find((cab) => cab.id === w.cableId) : null
+      const len = cable ? cable.lengthInches : w.lengthInches
+
+      // Destination: the other end of this wire
+      const otherEndId = w.startTerminalId === t.id ? w.endTerminalId : w.startTerminalId
+      const dest = resolveEndpoint(otherEndId)
+
+      const cableNote = cable ? ` [${cable.name}]` : ''
+      lines.push(`  ${t.name} – ${w.name}, ${w.color}, ${w.awg} AWG, ${fmtLen(len)} → ${dest}${cableNote}`)
+    }
+
+    // Cable groupings for wires on this connector
+    const cableIds = new Set(connectorWires.map((w) => w.cableId).filter(Boolean) as string[])
+    if (cableIds.size > 0) {
+      lines.push('')
+      lines.push('  Cable groups:')
+      for (const cid of cableIds) {
+        const cable = cables.find((cab) => cab.id === cid)
+        if (!cable) continue
+        const names = connectorWires.filter((w) => w.cableId === cid).map((w) => w.name)
+        lines.push(`    ${cable.name} (${fmtLen(cable.lengthInches)}): ${names.join(', ')}`)
+      }
+    }
+
+    lines.push('')
+  }
+
+  // Splices
+  for (const s of splices) {
+    lines.push(box(`Splice – ${s.label || 'SP'}`))
+    lines.push('')
+    const spliceWires = wires.filter(
+      (w) =>
+        (w.startTerminalId && spliceHandleMap.has(w.startTerminalId)) ||
+        (w.endTerminalId && spliceHandleMap.has(w.endTerminalId))
+    )
+    for (const w of spliceWires) {
+      const cable = w.cableId ? cables.find((c) => c.id === w.cableId) : null
+      const len = cable ? cable.lengthInches : w.lengthInches
+      const otherEndId = spliceHandleMap.has(w.startTerminalId ?? '')
+        ? w.endTerminalId
+        : w.startTerminalId
+      lines.push(`  ${w.name}, ${w.color}, ${w.awg} AWG, ${fmtLen(len)} → ${resolveEndpoint(otherEndId)}`)
+    }
+    lines.push('')
+  }
+
+  // Fuse blocks
+  for (const fb of fuseBlocks) {
+    lines.push(box(`Fuse Block – ${fb.label} (${fb.circuits}-Circuit)`))
+    lines.push('')
+    lines.push(`  Power In (${fuseBlockInHandle(fb.id)})`)
+    const inWires = wires.filter(
+      (w) => w.startTerminalId === fuseBlockInHandle(fb.id) || w.endTerminalId === fuseBlockInHandle(fb.id)
+    )
+    for (const w of inWires) {
+      const otherEnd = w.startTerminalId === fuseBlockInHandle(fb.id) ? w.endTerminalId : w.startTerminalId
+      const cable = w.cableId ? cables.find((c) => c.id === w.cableId) : null
+      const len = cable ? cable.lengthInches : w.lengthInches
+      lines.push(`    ${w.name}, ${w.color}, ${w.awg} AWG, ${fmtLen(len)} → ${resolveEndpoint(otherEnd)}`)
+    }
+    lines.push('')
+    for (let i = 0; i < fb.circuits; i++) {
+      const hid = fuseBlockOutHandle(fb.id, i)
+      const circuitWires = wires.filter((w) => w.startTerminalId === hid || w.endTerminalId === hid)
+      const ampLabel = `Circuit ${i + 1} (${fb.ampRatings[i] ?? 10}A)`
+      if (circuitWires.length === 0) {
+        lines.push(`  ${ampLabel} – [empty]`)
+      } else {
+        for (const w of circuitWires) {
+          const otherEnd = w.startTerminalId === hid ? w.endTerminalId : w.startTerminalId
+          const cable = w.cableId ? cables.find((c) => c.id === w.cableId) : null
+          const len = cable ? cable.lengthInches : w.lengthInches
+          lines.push(`  ${ampLabel} – ${w.name}, ${w.color}, ${w.awg} AWG, ${fmtLen(len)} → ${resolveEndpoint(otherEnd)}`)
+        }
+      }
+    }
+    lines.push('')
+  }
+
+  // Power buses
+  for (const pb of powerBuses) {
+    lines.push(box(`Power Bus – ${pb.label}`))
+    lines.push('')
+    const inHid = powerBusInHandle(pb.id)
+    lines.push(`  Power Feed In`)
+    const inWires = wires.filter((w) => w.startTerminalId === inHid || w.endTerminalId === inHid)
+    for (const w of inWires) {
+      const otherEnd = w.startTerminalId === inHid ? w.endTerminalId : w.startTerminalId
+      const cable = w.cableId ? cables.find((c) => c.id === w.cableId) : null
+      const len = cable ? cable.lengthInches : w.lengthInches
+      lines.push(`    ${w.name}, ${w.color}, ${w.awg} AWG, ${fmtLen(len)} → ${resolveEndpoint(otherEnd)}`)
+    }
+    if (inWires.length === 0) lines.push(`    [unconnected]`)
+    lines.push('')
+    for (let i = 0; i < pb.outputCount; i++) {
+      const hid = powerBusOutHandle(pb.id, i)
+      const outWires = wires.filter((w) => w.startTerminalId === hid || w.endTerminalId === hid)
+      if (outWires.length === 0) {
+        lines.push(`  Out ${i + 1} – [empty]`)
+      } else {
+        for (const w of outWires) {
+          const otherEnd = w.startTerminalId === hid ? w.endTerminalId : w.startTerminalId
+          const cable = w.cableId ? cables.find((c) => c.id === w.cableId) : null
+          const len = cable ? cable.lengthInches : w.lengthInches
+          lines.push(`  Out ${i + 1} – ${w.name}, ${w.color}, ${w.awg} AWG, ${fmtLen(len)} → ${resolveEndpoint(otherEnd)}`)
+        }
+      }
+    }
+    lines.push('')
+  }
+
+  // Batteries / power rails
+  for (const pr of powerRails) {
+    lines.push(box(`Battery – ${pr.label}`))
+    lines.push('')
+    for (const [hid, termLabel] of [[powerRailPosHandle(pr.id), '(+)'], [powerRailNegHandle(pr.id), '(−)']] as const) {
+      const termWires = wires.filter((w) => w.startTerminalId === hid || w.endTerminalId === hid)
+      if (termWires.length === 0) {
+        lines.push(`  ${termLabel} – [unconnected]`)
+      } else {
+        for (const w of termWires) {
+          const otherEnd = w.startTerminalId === hid ? w.endTerminalId : w.startTerminalId
+          const cable = w.cableId ? cables.find((c) => c.id === w.cableId) : null
+          const len = cable ? cable.lengthInches : w.lengthInches
+          lines.push(`  ${termLabel} – ${w.name}, ${w.color}, ${w.awg} AWG, ${fmtLen(len)} → ${resolveEndpoint(otherEnd)}`)
+        }
+      }
+    }
+    lines.push('')
+  }
+
+  // Grounds
+  for (const g of grounds) {
+    lines.push(box(`Ground – ${g.label || 'GND'}`))
+    lines.push('')
+    const groundWires = wires.filter(
+      (w) =>
+        (w.startTerminalId && groundHandleMap.has(w.startTerminalId)) ||
+        (w.endTerminalId && groundHandleMap.has(w.endTerminalId))
+    )
+    for (const w of groundWires) {
+      const cable = w.cableId ? cables.find((c) => c.id === w.cableId) : null
+      const len = cable ? cable.lengthInches : w.lengthInches
+      const otherEndId = groundHandleMap.has(w.startTerminalId ?? '')
+        ? w.endTerminalId
+        : w.startTerminalId
+      lines.push(`  ${w.name}, ${w.color}, ${w.awg} AWG, ${fmtLen(len)} → ${resolveEndpoint(otherEndId)}`)
+    }
+    lines.push('')
+  }
+
+  return lines.join('\n')
+}
+
 // ── Validation ─────────────────────────────────────────────────────────────
 
 export interface ValidationIssue {
@@ -296,8 +712,10 @@ export interface ValidationIssue {
 }
 
 export function validateHarness(
-  connectors: ConnectorNode[], wires: Wire[], splices: SpliceNode[], grounds: GroundNode[]
+  connectors: ConnectorNode[], wires: Wire[], splices: SpliceNode[], grounds: GroundNode[],
+  fuseBlocks: FuseBlock[] = [], powerRails: PowerRail[] = [], powerBuses: PowerBus[] = []
 ): ValidationIssue[] {
+  void fuseBlocks; void powerRails; void powerBuses // reserved for future circuit validation
   const issues: ValidationIssue[] = []
 
   for (const w of wires) {

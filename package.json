@@ -1,6 +1,6 @@
 {
   "name": "wireman-app",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Wiring harness builder",
   "author": "seaburr",
   "main": "out/main/index.js",

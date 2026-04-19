@@ -10,49 +10,64 @@ import { useShallow } from 'zustand/react/shallow'
 import { ConnectorNodeComponent, ConnectorFlowNode } from './ConnectorNodeComponent'
 import { SpliceNodeComponent, SpliceFlowNode } from './SpliceNodeComponent'
 import { GroundNodeComponent, GroundFlowNode } from './GroundNodeComponent'
+import { FuseBlockNodeComponent, FuseBlockFlowNode } from './FuseBlockNodeComponent'
+import { PowerRailNodeComponent, PowerRailFlowNode } from './PowerRailNodeComponent'
+import { PowerBusNodeComponent, PowerBusFlowNode } from './PowerBusNodeComponent'
 import { CableEdgeComponent } from './CableEdgeComponent'
 import { useHarnessStore } from '../../store'
-import { WIRE_COLORS } from '../../models'
+import { WIRE_COLORS, fuseBlockInHandle, fuseBlockOutHandle, powerRailPosHandle, powerRailNegHandle, powerBusInHandle, powerBusOutHandle } from '../../models'
 
 const nodeTypes: NodeTypes = {
   connector: ConnectorNodeComponent,
   splice:    SpliceNodeComponent,
-  ground:    GroundNodeComponent
+  ground:    GroundNodeComponent,
+  fuseBlock: FuseBlockNodeComponent,
+  powerRail: PowerRailNodeComponent,
+  powerBus:  PowerBusNodeComponent,
 }
 
 const edgeTypes: EdgeTypes = {
   cable: CableEdgeComponent,
 }
 
-type AnyFlowNode = ConnectorFlowNode | SpliceFlowNode | GroundFlowNode
+type AnyFlowNode = ConnectorFlowNode | SpliceFlowNode | GroundFlowNode | FuseBlockFlowNode | PowerRailFlowNode | PowerBusFlowNode
 
 /** Edge IDs for collapsed cables use this prefix so we can distinguish them. */
 const CABLE_EDGE_PREFIX = '__cable__'
 
 export function HarnessCanvas() {
   const {
-    connectors, wires, cables, splices, grounds,
-    addWire, moveConnector, moveSplice, moveGround,
-    removeWire, removeConnector, removeSplice, removeGround,
+    connectors, wires, cables, splices, grounds, fuseBlocks, powerRails, powerBuses,
+    addWire, moveConnector, moveSplice, moveGround, moveFuseBlock, movePowerRail, movePowerBus,
+    removeWire, removeConnector, removeSplice, removeGround, removeFuseBlock, removePowerRail, removePowerBus,
     select, selectedId, selectedType
   } = useHarnessStore(
     useShallow((s) => ({
-      connectors:      s.connectors,
-      wires:           s.wires,
-      cables:          s.cables,
-      splices:         s.splices,
-      grounds:         s.grounds,
-      addWire:         s.addWire,
-      moveConnector:   s.moveConnector,
-      moveSplice:      s.moveSplice,
-      moveGround:      s.moveGround,
-      removeWire:      s.removeWire,
-      removeConnector: s.removeConnector,
-      removeSplice:    s.removeSplice,
-      removeGround:    s.removeGround,
-      select:          s.select,
-      selectedId:      s.selectedId,
-      selectedType:    s.selectedType
+      connectors:       s.connectors,
+      wires:            s.wires,
+      cables:           s.cables,
+      splices:          s.splices,
+      grounds:          s.grounds,
+      fuseBlocks:       s.fuseBlocks,
+      powerRails:       s.powerRails,
+      powerBuses:       s.powerBuses,
+      addWire:          s.addWire,
+      moveConnector:    s.moveConnector,
+      moveSplice:       s.moveSplice,
+      moveGround:       s.moveGround,
+      moveFuseBlock:    s.moveFuseBlock,
+      movePowerRail:    s.movePowerRail,
+      movePowerBus:     s.movePowerBus,
+      removeWire:       s.removeWire,
+      removeConnector:  s.removeConnector,
+      removeSplice:     s.removeSplice,
+      removeGround:     s.removeGround,
+      removeFuseBlock:  s.removeFuseBlock,
+      removePowerRail:  s.removePowerRail,
+      removePowerBus:   s.removePowerBus,
+      select:           s.select,
+      selectedId:       s.selectedId,
+      selectedType:     s.selectedType
     }))
   )
 
@@ -79,8 +94,26 @@ export function HarnessCanvas() {
       position: g.position,
       selected: selectedId === g.id && selectedType === 'ground',
       data: g
-    }))
-  ], [connectors, splices, grounds, selectedId, selectedType])
+    })),
+    ...fuseBlocks.map((fb): FuseBlockFlowNode => ({
+      id: fb.id, type: 'fuseBlock' as const,
+      position: fb.position,
+      selected: selectedId === fb.id && selectedType === 'fuseBlock',
+      data: fb
+    })),
+    ...powerRails.map((pr): PowerRailFlowNode => ({
+      id: pr.id, type: 'powerRail' as const,
+      position: pr.position,
+      selected: selectedId === pr.id && selectedType === 'powerRail',
+      data: pr
+    })),
+    ...powerBuses.map((pb): PowerBusFlowNode => ({
+      id: pb.id, type: 'powerBus' as const,
+      position: pb.position,
+      selected: selectedId === pb.id && selectedType === 'powerBus',
+      data: pb
+    })),
+  ], [connectors, splices, grounds, fuseBlocks, powerRails, powerBuses, selectedId, selectedType])
 
   // ── Derive edges from store ──────────────────────────────────────────────
 
@@ -95,6 +128,18 @@ export function HarnessCanvas() {
     }
     for (const g of grounds) {
       for (let i = 0; i < g.handleCount; i++) handleToNode.set(`${g.id}_gnd_${i}`, g.id)
+    }
+    for (const fb of fuseBlocks) {
+      handleToNode.set(fuseBlockInHandle(fb.id), fb.id)
+      for (let i = 0; i < fb.circuits; i++) handleToNode.set(fuseBlockOutHandle(fb.id, i), fb.id)
+    }
+    for (const pr of powerRails) {
+      handleToNode.set(powerRailPosHandle(pr.id), pr.id)
+      handleToNode.set(powerRailNegHandle(pr.id), pr.id)
+    }
+    for (const pb of powerBuses) {
+      handleToNode.set(powerBusInHandle(pb.id), pb.id)
+      for (let i = 0; i < pb.outputCount; i++) handleToNode.set(powerBusOutHandle(pb.id, i), pb.id)
     }
 
     // IDs of collapsed cables — their individual wire edges are suppressed
@@ -176,7 +221,7 @@ export function HarnessCanvas() {
     }
 
     return [...wireEdges, ...cableEdges]
-  }, [wires, cables, connectors, splices, grounds, selectedId, selectedType])
+  }, [wires, cables, connectors, splices, grounds, fuseBlocks, powerRails, powerBuses, selectedId, selectedType])
 
   // Sync store → React Flow
   useEffect(() => { setRfNodes(storeNodes) }, [storeNodes, setRfNodes])
@@ -191,17 +236,24 @@ export function HarnessCanvas() {
         if (change.type === 'position' && change.position && !change.dragging) {
           if (connectors.some((c) => c.id === change.id)) moveConnector(change.id, change.position)
           else if (splices.some((s) => s.id === change.id)) moveSplice(change.id, change.position)
+          else if (fuseBlocks.some((f) => f.id === change.id)) moveFuseBlock(change.id, change.position)
+          else if (powerRails.some((p) => p.id === change.id)) movePowerRail(change.id, change.position)
+          else if (powerBuses.some((b) => b.id === change.id)) movePowerBus(change.id, change.position)
           else moveGround(change.id, change.position)
         }
         if (change.type === 'remove') {
           if (connectors.some((c) => c.id === change.id)) removeConnector(change.id)
           else if (splices.some((s) => s.id === change.id)) removeSplice(change.id)
           else if (grounds.some((g) => g.id === change.id)) removeGround(change.id)
+          else if (fuseBlocks.some((f) => f.id === change.id)) removeFuseBlock(change.id)
+          else if (powerRails.some((p) => p.id === change.id)) removePowerRail(change.id)
+          else if (powerBuses.some((b) => b.id === change.id)) removePowerBus(change.id)
         }
       }
     },
-    [onRfNodesChange, moveConnector, moveSplice, moveGround,
-     removeConnector, removeSplice, removeGround, connectors, splices, grounds]
+    [onRfNodesChange, moveConnector, moveSplice, moveGround, moveFuseBlock, movePowerRail, movePowerBus,
+     removeConnector, removeSplice, removeGround, removeFuseBlock, removePowerRail, removePowerBus,
+     connectors, splices, grounds, fuseBlocks, powerRails, powerBuses]
   )
 
   const onEdgesChange = useCallback(
@@ -241,9 +293,12 @@ export function HarnessCanvas() {
     (_: React.MouseEvent, node: Node) => {
       if (splices.some((s) => s.id === node.id)) select(node.id, 'splice')
       else if (grounds.some((g) => g.id === node.id)) select(node.id, 'ground')
+      else if (fuseBlocks.some((f) => f.id === node.id)) select(node.id, 'fuseBlock')
+      else if (powerRails.some((p) => p.id === node.id)) select(node.id, 'powerRail')
+      else if (powerBuses.some((b) => b.id === node.id)) select(node.id, 'powerBus')
       else select(node.id, 'connector')
     },
-    [select, splices, grounds]
+    [select, splices, grounds, fuseBlocks, powerRails, powerBuses]
   )
 
   const onPaneClick = useCallback(() => select(null, null), [select])

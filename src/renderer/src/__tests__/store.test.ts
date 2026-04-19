@@ -8,6 +8,7 @@ function resetStore() {
   useHarnessStore.setState({
     projectName: 'Test',
     connectors: [], wires: [], cables: [], splices: [], grounds: [],
+    fuseBlocks: [], powerRails: [], powerBuses: [],
     selectedId: null, selectedType: null,
     past: [], future: [],
   })
@@ -305,6 +306,208 @@ describe('undo / redo', () => {
     expect(get().connectors).toHaveLength(1)
     get().redo()
     expect(get().connectors).toHaveLength(2)
+  })
+})
+
+// ── Fuse Blocks ───────────────────────────────────────────────────────────────
+
+describe('addFuseBlock / removeFuseBlock', () => {
+  it('adds a fuse block with default 4 circuits', () => {
+    get().addFuseBlock({ x: 0, y: 0 })
+    expect(get().fuseBlocks).toHaveLength(1)
+    expect(get().fuseBlocks[0].circuits).toBe(4)
+    expect(get().fuseBlocks[0].ampRatings).toHaveLength(4)
+  })
+
+  it('auto-selects the new fuse block', () => {
+    get().addFuseBlock({ x: 0, y: 0 })
+    expect(get().selectedId).toBe(get().fuseBlocks[0].id)
+    expect(get().selectedType).toBe('fuseBlock')
+  })
+
+  it('removes a fuse block', () => {
+    get().addFuseBlock({ x: 0, y: 0 })
+    get().removeFuseBlock(get().fuseBlocks[0].id)
+    expect(get().fuseBlocks).toHaveLength(0)
+  })
+
+  it('removing a fuse block also removes its connected wires', () => {
+    get().addFuseBlock({ x: 0, y: 0 })
+    get().addConnector('A', 'DTM-2', 2, 5, 'BOOT', 0.5)
+    const fb = get().fuseBlocks[0]
+    const terminal = get().connectors[0].terminals[0]
+    get().addWire(terminal.id, `${fb.id}_out_0`)
+    expect(get().wires).toHaveLength(1)
+    get().removeFuseBlock(fb.id)
+    expect(get().wires).toHaveLength(0)
+  })
+
+  it('clears selection when the selected fuse block is removed', () => {
+    get().addFuseBlock({ x: 0, y: 0 })
+    const id = get().fuseBlocks[0].id
+    get().removeFuseBlock(id)
+    expect(get().selectedId).toBeNull()
+  })
+})
+
+describe('updateFuseBlock', () => {
+  it('updates label', () => {
+    get().addFuseBlock({ x: 0, y: 0 })
+    const id = get().fuseBlocks[0].id
+    get().updateFuseBlock(id, { label: 'MAIN' })
+    expect(get().fuseBlocks[0].label).toBe('MAIN')
+  })
+
+  it('syncs ampRatings length when circuits increases', () => {
+    get().addFuseBlock({ x: 0, y: 0 })
+    const id = get().fuseBlocks[0].id
+    get().updateFuseBlock(id, { circuits: 6 })
+    expect(get().fuseBlocks[0].ampRatings).toHaveLength(6)
+  })
+
+  it('trims ampRatings when circuits decreases', () => {
+    get().addFuseBlock({ x: 0, y: 0 })
+    const id = get().fuseBlocks[0].id
+    get().updateFuseBlock(id, { circuits: 2 })
+    expect(get().fuseBlocks[0].ampRatings).toHaveLength(2)
+  })
+
+  it('preserves existing amp ratings when growing', () => {
+    get().addFuseBlock({ x: 0, y: 0 })
+    const id = get().fuseBlocks[0].id
+    get().updateFuseBlock(id, { ampRatings: [20, 30, 10, 10] })
+    get().updateFuseBlock(id, { circuits: 6 })
+    const ratings = get().fuseBlocks[0].ampRatings
+    expect(ratings[0]).toBe(20)
+    expect(ratings[1]).toBe(30)
+    expect(ratings[4]).toBe(10)  // new slots default to 10
+  })
+})
+
+// ── Power Rails ───────────────────────────────────────────────────────────────
+
+describe('addPowerRail / removePowerRail', () => {
+  it('adds a power rail', () => {
+    get().addPowerRail({ x: 0, y: 0 })
+    expect(get().powerRails).toHaveLength(1)
+    expect(get().powerRails[0].label).toBe('Battery')
+  })
+
+  it('auto-selects the new power rail', () => {
+    get().addPowerRail({ x: 0, y: 0 })
+    expect(get().selectedId).toBe(get().powerRails[0].id)
+    expect(get().selectedType).toBe('powerRail')
+  })
+
+  it('removes a power rail', () => {
+    get().addPowerRail({ x: 0, y: 0 })
+    get().removePowerRail(get().powerRails[0].id)
+    expect(get().powerRails).toHaveLength(0)
+  })
+
+  it('removing a power rail also removes its connected wires', () => {
+    get().addPowerRail({ x: 0, y: 0 })
+    get().addConnector('A', 'DTM-2', 2, 5, 'BOOT', 0.5)
+    const pr = get().powerRails[0]
+    const terminal = get().connectors[0].terminals[0]
+    get().addWire(terminal.id, `${pr.id}_pos`)
+    expect(get().wires).toHaveLength(1)
+    get().removePowerRail(pr.id)
+    expect(get().wires).toHaveLength(0)
+  })
+
+  it('has exactly two fixed terminals: _pos and _neg', () => {
+    get().addPowerRail({ x: 0, y: 0 })
+    const pr = get().powerRails[0]
+    expect(pr).not.toHaveProperty('handleCount')
+    // Both handles are known fixed IDs
+    expect(`${pr.id}_pos`).toBe(`${pr.id}_pos`)
+    expect(`${pr.id}_neg`).toBe(`${pr.id}_neg`)
+  })
+})
+
+// ── Power Buses ───────────────────────────────────────────────────────────────
+
+describe('addPowerBus / removePowerBus', () => {
+  it('adds a power bus with default 2 outputs and label PWR', () => {
+    get().addPowerBus({ x: 0, y: 0 })
+    expect(get().powerBuses).toHaveLength(1)
+    expect(get().powerBuses[0].outputCount).toBe(2)
+    expect(get().powerBuses[0].label).toBe('PWR')
+  })
+
+  it('auto-selects the new power bus', () => {
+    get().addPowerBus({ x: 0, y: 0 })
+    expect(get().selectedId).toBe(get().powerBuses[0].id)
+    expect(get().selectedType).toBe('powerBus')
+  })
+
+  it('removes a power bus', () => {
+    get().addPowerBus({ x: 0, y: 0 })
+    get().removePowerBus(get().powerBuses[0].id)
+    expect(get().powerBuses).toHaveLength(0)
+  })
+
+  it('removing a power bus also removes its connected wires', () => {
+    get().addPowerBus({ x: 0, y: 0 })
+    get().addConnector('A', 'DTM-2', 2, 5, 'BOOT', 0.5)
+    const pb = get().powerBuses[0]
+    const terminal = get().connectors[0].terminals[0]
+    get().addWire(terminal.id, `${pb.id}_bus_0`)
+    expect(get().wires).toHaveLength(1)
+    get().removePowerBus(pb.id)
+    expect(get().wires).toHaveLength(0)
+  })
+
+  it('clears selection when the selected power bus is removed', () => {
+    get().addPowerBus({ x: 0, y: 0 })
+    const id = get().powerBuses[0].id
+    get().removePowerBus(id)
+    expect(get().selectedId).toBeNull()
+  })
+})
+
+describe('addPowerBus auto-grow', () => {
+  it('auto-grows outputCount when the last output slot is connected', () => {
+    get().addPowerBus({ x: 0, y: 0 })
+    get().addConnector('A', 'DTM-2', 2, 5, 'BOOT', 0.5)
+    const pb = get().powerBuses[0]
+    const terminal = get().connectors[0].terminals[0]
+    const initialOutputs = pb.outputCount
+    // Connect to the last output slot
+    get().addWire(terminal.id, `${pb.id}_bus_${initialOutputs - 1}`)
+    expect(get().powerBuses[0].outputCount).toBe(initialOutputs + 1)
+  })
+})
+
+describe('updatePowerBus', () => {
+  it('updates label', () => {
+    get().addPowerBus({ x: 0, y: 0 })
+    const id = get().powerBuses[0].id
+    get().updatePowerBus(id, { label: 'MAIN-BUS' })
+    expect(get().powerBuses[0].label).toBe('MAIN-BUS')
+  })
+})
+
+// ── Undo / Redo with new node types ──────────────────────────────────────────
+
+describe('undo with fuseBlocks and powerRails', () => {
+  it('undo reverses addFuseBlock', () => {
+    get().addFuseBlock({ x: 0, y: 0 })
+    get().undo()
+    expect(get().fuseBlocks).toHaveLength(0)
+  })
+
+  it('undo reverses addPowerRail', () => {
+    get().addPowerRail({ x: 0, y: 0 })
+    get().undo()
+    expect(get().powerRails).toHaveLength(0)
+  })
+
+  it('undo reverses addPowerBus', () => {
+    get().addPowerBus({ x: 0, y: 0 })
+    get().undo()
+    expect(get().powerBuses).toHaveLength(0)
   })
 })
 

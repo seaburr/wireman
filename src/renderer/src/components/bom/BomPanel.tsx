@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { toPng } from 'html-to-image'
 import { useShallow } from 'zustand/react/shallow'
 import { useHarnessStore } from '../../store'
-import { generateBom, BomLine } from '../../models'
+import { generateBom, generateBuildSteps, BomLine } from '../../models'
 
 function toKebab(s: string): string {
   return s.trim().toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '').replace(/-+/g, '-').replace(/^-|-$/g, '') || 'wireman'
@@ -38,6 +38,27 @@ function formatTime(minutes: number): string {
   return m === 0 ? `${h} hr` : `${h} hr ${m} min`
 }
 
+function exportBuildSteps(
+  connectors: Parameters<typeof generateBuildSteps>[0],
+  wires: Parameters<typeof generateBuildSteps>[1],
+  cables: Parameters<typeof generateBuildSteps>[2],
+  splices: Parameters<typeof generateBuildSteps>[3],
+  grounds: Parameters<typeof generateBuildSteps>[4],
+  projectName: string,
+  fuseBlocks: Parameters<typeof generateBuildSteps>[6],
+  powerRails: Parameters<typeof generateBuildSteps>[7],
+  powerBuses: Parameters<typeof generateBuildSteps>[8]
+) {
+  const text = generateBuildSteps(connectors, wires, cables, splices, grounds, projectName, fuseBlocks, powerRails, powerBuses)
+  const blob = new Blob([text], { type: 'text/plain' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `${toKebab(projectName)}-build-steps.txt`
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
 async function exportImage(projectName: string) {
   const canvas = document.querySelector('.app-canvas') as HTMLElement | null
   if (!canvas) return
@@ -52,13 +73,15 @@ async function exportImage(projectName: string) {
 
 export function BomPanel() {
   const [open, setOpen] = useState(false)
-  const { connectors, wires, cables, splices, grounds, projectName } = useHarnessStore(
+  const { connectors, wires, cables, splices, grounds, fuseBlocks, powerRails, powerBuses, projectName } = useHarnessStore(
     useShallow((s) => ({
       connectors: s.connectors, wires: s.wires, cables: s.cables,
-      splices: s.splices, grounds: s.grounds, projectName: s.projectName,
+      splices: s.splices, grounds: s.grounds,
+      fuseBlocks: s.fuseBlocks, powerRails: s.powerRails, powerBuses: s.powerBuses,
+      projectName: s.projectName,
     }))
   )
-  const bom = generateBom(connectors, wires, cables, splices, grounds)
+  const bom = generateBom(connectors, wires, cables, splices, grounds, fuseBlocks, powerRails, powerBuses)
 
   if (!open) {
     return (
@@ -69,9 +92,14 @@ export function BomPanel() {
             Material: ${bom.totalMaterialCostUsd.toFixed(2)} · Build: {formatTime(bom.estimatedLaborMin)} · Est. Sale: ${bom.estimatedSalePriceUsd.toFixed(2)}
           </span>
         </button>
-        <button className="bom-btn bom-btn--export" onClick={() => exportImage(projectName)}>
-          Export Image
-        </button>
+        <div className="bom-bar__exports">
+          <button className="bom-btn" onClick={() => exportImage(projectName)}>
+            Export Image
+          </button>
+          <button className="bom-btn" onClick={() => exportBuildSteps(connectors, wires, cables, splices, grounds, projectName, fuseBlocks, powerRails, powerBuses)}>
+            Export Build Steps
+          </button>
+        </div>
       </div>
     )
   }
@@ -86,6 +114,9 @@ export function BomPanel() {
           </button>
           <button className="bom-btn" onClick={() => exportImage(projectName)}>
             Export Image
+          </button>
+          <button className="bom-btn" onClick={() => exportBuildSteps(connectors, wires, cables, splices, grounds, projectName, fuseBlocks, powerRails, powerBuses)}>
+            Export Build Steps
           </button>
           <button className="bom-btn bom-btn--close" onClick={() => setOpen(false)}>
             ↓ Collapse
