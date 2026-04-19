@@ -105,6 +105,10 @@ src/
       bom/        Bill of Materials panel and CSV export
 ```
 
+## Planned features
+
+- **Settings panel** — move hardcoded pricing and cost multipliers (labor rate, material margin, minutes per terminal, wire cost per foot, splice/ground terminal cost) and connector presets into a configurable settings overlay. Values would be stored in the project file so per-project overrides are possible, with app-wide defaults for new projects.
+
 ## Tech stack
 
 - [Electron](https://www.electronjs.org/) + [electron-vite](https://evite.netlify.app/)
