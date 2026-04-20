@@ -70,9 +70,19 @@ jobs:
     permissions:
       contents: write
     steps:
+      - uses: actions/checkout@v4
+
       - uses: actions/download-artifact@v4
         with:
           path: artifacts
+
+      # Move the nightly tag to the current commit so source archives are fresh
+      - name: Update nightly tag
+        run: |
+          git tag -f nightly ${{ github.sha }}
+          git push origin -f refs/tags/nightly
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       # Wipe stale assets so version-stamped filenames don't accumulate
       - name: Clear existing nightly assets
