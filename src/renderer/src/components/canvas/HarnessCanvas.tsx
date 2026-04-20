@@ -203,7 +203,9 @@ export function HarnessCanvas() {
         if (!srcNode || !tgtNode) return []
         const cable = w.cableId ? cables.find((c) => c.id === w.cableId) : null
         const color = WIRE_COLORS[w.color] ?? '#718096'
-        const strokeWidth = cable ? 3 : 2
+        const isSelected = selectedId === w.id && selectedType === 'wire'
+        const strokeWidth = isSelected ? 3 : (cable ? 3 : 2)
+        const strokeColor = isSelected ? '#63b3ed' : color
         return [{
           id: w.id,
           source: srcNode,
@@ -211,9 +213,9 @@ export function HarnessCanvas() {
           sourceHandle: w.startTerminalId!,
           targetHandle: w.endTerminalId!,
           label: w.name,
-          selected: selectedId === w.id && selectedType === 'wire',
-          style: { stroke: color, strokeWidth },
-          markerEnd: { type: MarkerType.ArrowClosed, color },
+          selected: isSelected,
+          style: { stroke: strokeColor, strokeWidth },
+          markerEnd: { type: MarkerType.ArrowClosed, color: strokeColor },
           labelStyle: { fontSize: 10, fill: '#e2e8f0' },
           labelBgStyle: { fill: '#2d3748', fillOpacity: 0.8 },
           type: 'smoothstep',

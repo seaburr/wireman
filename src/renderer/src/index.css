@@ -559,7 +559,7 @@ body, #root {
 
 .cable-branch-node {
   width: 40px;
-  height: 40px;
+  height: 36px;
   position: relative;
   cursor: pointer;
   display: flex;
@@ -567,29 +567,19 @@ body, #root {
   justify-content: center;
 }
 
-.cable-branch-node__inner {
-  width: 28px;
-  height: 28px;
-  transform: rotate(45deg);
-  background: #243040;
-  border: 2px solid #63b3ed;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.cable-branch-node__svg {
+  display: block;
+  filter: drop-shadow(0 0 0px transparent);
+  transition: filter 0.1s;
 }
 
-.cable-branch-node--selected .cable-branch-node__inner {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 2px rgba(66,153,225,0.35);
+.cable-branch-node--selected {
+  outline: 2px solid #63b3ed;
+  border-radius: 4px;
 }
 
-.cable-branch-node__label {
-  font-size: 6px;
-  font-weight: 700;
-  color: #63b3ed;
-  font-family: monospace;
-  transform: rotate(-45deg);
-  white-space: nowrap;
+.cable-branch-node--selected .cable-branch-node__svg {
+  filter: drop-shadow(0 0 6px rgba(99,179,237,0.8));
 }
 
 .branch-handle {
@@ -668,8 +658,13 @@ body, #root {
   padding: 4px 0 2px;
 }
 
+.ground-node--selected {
+  outline: 2px solid #63b3ed;
+  border-radius: 4px;
+}
+
 .ground-node--selected .ground-node__symbol {
-  filter: drop-shadow(0 0 4px rgba(66,153,225,0.6));
+  filter: drop-shadow(0 0 6px rgba(99,179,237,0.7));
 }
 
 .ground-node__symbol {
@@ -811,8 +806,8 @@ body, #root {
 }
 
 .power-rail-node--selected {
-  border-color: #fc8181;
-  box-shadow: 0 0 0 2px rgba(252,129,129,0.35);
+  border-color: #63b3ed;
+  box-shadow: 0 0 0 2px rgba(99,179,237,0.35);
 }
 
 .power-rail-node__label {
@@ -876,8 +871,8 @@ body, #root {
 }
 
 .power-bus-node--selected {
-  border-color: #f6ad55;
-  box-shadow: 0 0 0 2px rgba(246,173,85,0.35);
+  border-color: #63b3ed;
+  box-shadow: 0 0 0 2px rgba(99,179,237,0.35);
 }
 
 .power-bus-node__header {
@@ -1343,5 +1338,9 @@ body, #root {
 
 .react-flow__attribution {
   display: none !important;
+}
+
+.react-flow__edge.selected .react-flow__edge-path {
+  filter: drop-shadow(0 0 4px rgba(99,179,237,0.7)) !important;
 }
 

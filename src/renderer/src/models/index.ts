@@ -550,7 +550,7 @@ export function generateBuildSteps(
     }
   }
 
-  function resolveEndpoint(handleId: string | null): string {
+  function resolveEndpoint(handleId: string | null, excludeWireId?: string): string {
     if (!handleId) return 'unconnected'
     const t = terminalMap.get(handleId)
     if (t) return `${t.connectorName} – ${t.terminalName}`
@@ -565,7 +565,21 @@ export function generateBuildSteps(
     const b = powerBusHandleMap.get(handleId)
     if (b) return b
     const br = branchHandleMap.get(handleId)
-    if (br) return `${br} (branch)`
+    if (br) {
+      // Follow through-connections: find partner wire(s) sharing this branch handle
+      const partners = wires.filter(
+        (w) => w.id !== excludeWireId &&
+          (w.startTerminalId === handleId || w.endTerminalId === handleId)
+      )
+      const destinations = partners
+        .map((w) => {
+          const otherEnd = w.startTerminalId === handleId ? w.endTerminalId : w.startTerminalId
+          return resolveEndpoint(otherEnd, w.id)
+        })
+        .filter((d) => d !== 'unconnected')
+      if (destinations.length > 0) return `${destinations.join(' / ')} via ${br}`
+      return `${br} (branch)`
+    }
     return 'unconnected'
   }
 
@@ -592,9 +606,9 @@ export function generateBuildSteps(
       const cable = w.cableId ? cables.find((cab) => cab.id === w.cableId) : null
       const len = cable ? cable.lengthInches : w.lengthInches
 
-      // Destination: the other end of this wire
+      // Destination: the other end of this wire (pass wire id to avoid self-loops at branch handles)
       const otherEndId = w.startTerminalId === t.id ? w.endTerminalId : w.startTerminalId
-      const dest = resolveEndpoint(otherEndId)
+      const dest = resolveEndpoint(otherEndId, w.id)
 
       const cableNote = cable ? ` [${cable.name}]` : ''
       lines.push(`  ${t.name} – ${w.name}, ${w.color}, ${w.awg} AWG, ${fmtLen(len)} → ${dest}${cableNote}`)

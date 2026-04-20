@@ -47,9 +47,10 @@ function exportBuildSteps(
   projectName: string,
   fuseBlocks: Parameters<typeof generateBuildSteps>[6],
   powerRails: Parameters<typeof generateBuildSteps>[7],
-  powerBuses: Parameters<typeof generateBuildSteps>[8]
+  powerBuses: Parameters<typeof generateBuildSteps>[8],
+  cableBranches: Parameters<typeof generateBuildSteps>[9]
 ) {
-  const text = generateBuildSteps(connectors, wires, cables, splices, grounds, projectName, fuseBlocks, powerRails, powerBuses)
+  const text = generateBuildSteps(connectors, wires, cables, splices, grounds, projectName, fuseBlocks, powerRails, powerBuses, cableBranches)
   const blob = new Blob([text], { type: 'text/plain' })
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
@@ -73,11 +74,12 @@ async function exportImage(projectName: string) {
 
 export function BomPanel() {
   const [open, setOpen] = useState(false)
-  const { connectors, wires, cables, splices, grounds, fuseBlocks, powerRails, powerBuses, projectName } = useHarnessStore(
+  const { connectors, wires, cables, splices, grounds, fuseBlocks, powerRails, powerBuses, cableBranches, projectName } = useHarnessStore(
     useShallow((s) => ({
       connectors: s.connectors, wires: s.wires, cables: s.cables,
       splices: s.splices, grounds: s.grounds,
       fuseBlocks: s.fuseBlocks, powerRails: s.powerRails, powerBuses: s.powerBuses,
+      cableBranches: s.cableBranches,
       projectName: s.projectName,
     }))
   )
@@ -96,7 +98,7 @@ export function BomPanel() {
           <button className="bom-btn" onClick={() => exportImage(projectName)}>
             Export Image
           </button>
-          <button className="bom-btn" onClick={() => exportBuildSteps(connectors, wires, cables, splices, grounds, projectName, fuseBlocks, powerRails, powerBuses)}>
+          <button className="bom-btn" onClick={() => exportBuildSteps(connectors, wires, cables, splices, grounds, projectName, fuseBlocks, powerRails, powerBuses, cableBranches)}>
             Export Build Steps
           </button>
         </div>
@@ -115,7 +117,7 @@ export function BomPanel() {
           <button className="bom-btn" onClick={() => exportImage(projectName)}>
             Export Image
           </button>
-          <button className="bom-btn" onClick={() => exportBuildSteps(connectors, wires, cables, splices, grounds, projectName, fuseBlocks, powerRails, powerBuses)}>
+          <button className="bom-btn" onClick={() => exportBuildSteps(connectors, wires, cables, splices, grounds, projectName, fuseBlocks, powerRails, powerBuses, cableBranches)}>
             Export Build Steps
           </button>
           <button className="bom-btn bom-btn--close" onClick={() => setOpen(false)}>

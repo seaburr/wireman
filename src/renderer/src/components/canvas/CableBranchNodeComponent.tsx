@@ -38,9 +38,20 @@ export function CableBranchNodeComponent({ data, selected }: NodeProps<CableBran
           />
         )
       })}
-      <div className="cable-branch-node__inner">
-        <span className="cable-branch-node__label">{data.label}</span>
-      </div>
+      <svg className="cable-branch-node__svg" width="40" height="36" viewBox="0 0 40 36">
+        <polygon
+          points="20,2 38,34 2,34"
+          fill="#243040"
+          stroke={selected ? 'var(--accent)' : '#63b3ed'}
+          strokeWidth="2"
+          strokeLinejoin="round"
+        />
+        <text x="20" y="25" textAnchor="middle"
+          fontSize="6" fontWeight="700" fontFamily="monospace"
+          fill={selected ? 'var(--accent)' : '#63b3ed'}>
+          {data.label}
+        </text>
+      </svg>
     </div>
   )
 }
