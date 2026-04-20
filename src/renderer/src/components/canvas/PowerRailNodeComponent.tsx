@@ -19,7 +19,7 @@ export function PowerRailNodeComponent({ data, selected }: NodeProps<PowerRailFl
     <div
       className={`power-rail-node${selected ? ' power-rail-node--selected' : ''}`}
       onClick={(e) => { e.stopPropagation(); select(data.id, 'powerRail') }}
-      title={`${data.label}`}
+      title={`${data.label} — battery / power source. Connect wires to (+) positive and (−) negative terminals.`}
     >
       <div className="power-rail-node__label">{data.label}</div>
 

@@ -3,9 +3,9 @@ import {
   getPinLayout, getLayoutCols,
   generateBom, generateBuildSteps, validateHarness,
   createConnector, createWire, createCable, createSplice, createGround,
-  createFuseBlock, createPowerRail, createPowerBus,
+  createFuseBlock, createPowerRail, createPowerBus, createCableBranch,
   fuseBlockInHandle, fuseBlockOutHandle, powerRailPosHandle, powerRailNegHandle,
-  powerBusInHandle, powerBusOutHandle,
+  powerBusInHandle, powerBusOutHandle, cableBranchHandleId,
   CONNECTOR_PRESETS, WIRE_COLORS,
 } from '../models'
 import type { ConnectorNode, Wire, Cable, SpliceNode, GroundNode, FuseBlock, PowerRail } from '../models'
@@ -183,6 +183,41 @@ describe('validateHarness', () => {
     const w2 = makeWire({ startTerminalId: 'x', endTerminalId: null })
     const issues = validateHarness([c], [w1, w2], [], [])
     expect(issues.length).toBeGreaterThanOrEqual(3)  // 2 wire errors + 1 connector warning
+  })
+
+  it('errors when a cable has wires going to 3 different connectors (no branch)', () => {
+    const cA = makeConnector('DTM-2', 2)
+    const cB = makeConnector('DTM-2', 2)
+    const cC = makeConnector('DTM-2', 2)
+    const cable = createCable()
+    const w1 = makeWire({ startTerminalId: cA.terminals[0].id, endTerminalId: cB.terminals[0].id, cableId: cable.id })
+    const w2 = makeWire({ startTerminalId: cA.terminals[1].id, endTerminalId: cC.terminals[0].id, cableId: cable.id })
+    const issues = validateHarness([cA, cB, cC], [w1, w2], [], [], [], [], [], [], [cable])
+    expect(issues.some((i) => i.severity === 'error' && i.message.includes('different endpoints'))).toBe(true)
+  })
+
+  it('allows a cable with wires between the same 2 connectors', () => {
+    const cA = makeConnector('DTM-2', 2)
+    const cB = makeConnector('DTM-2', 2)
+    const cable = createCable()
+    const w1 = makeWire({ startTerminalId: cA.terminals[0].id, endTerminalId: cB.terminals[0].id, cableId: cable.id })
+    const w2 = makeWire({ startTerminalId: cA.terminals[1].id, endTerminalId: cB.terminals[1].id, cableId: cable.id })
+    const issues = validateHarness([cA, cB], [w1, w2], [], [], [], [], [], [], [cable])
+    expect(issues.every((i) => !i.message.includes('different endpoints'))).toBe(true)
+  })
+
+  it('allows a cable with wires through a CableBranch', () => {
+    const cA = makeConnector('DTM-2', 2)
+    const cB = makeConnector('DTM-2', 2)
+    const cC = makeConnector('DTM-2', 2)
+    const branch = createCableBranch({ x: 0, y: 0 })
+    const cable = createCable()
+    // A→Branch, Branch→B, Branch→C all in same cable
+    const w1 = makeWire({ startTerminalId: cA.terminals[0].id, endTerminalId: cableBranchHandleId(branch.id, 0), cableId: cable.id })
+    const w2 = makeWire({ startTerminalId: cableBranchHandleId(branch.id, 1), endTerminalId: cB.terminals[0].id, cableId: cable.id })
+    const w3 = makeWire({ startTerminalId: cableBranchHandleId(branch.id, 2), endTerminalId: cC.terminals[0].id, cableId: cable.id })
+    const issues = validateHarness([cA, cB, cC], [w1, w2, w3], [], [], [], [], [], [branch], [cable])
+    expect(issues.every((i) => !i.message.includes('different endpoints'))).toBe(true)
   })
 })
 
@@ -551,6 +586,84 @@ describe('generateBuildSteps — power bus', () => {
     const out = generateBuildSteps([], [], [], [], [], 'Test', [], [], [pb])
     expect(out).toContain('Power Feed In')
     expect(out).toContain('[unconnected]')
+  })
+})
+
+// ── CableBranch ───────────────────────────────────────────────────────────────
+
+describe('createCableBranch', () => {
+  it('creates a branch with default label SPLIT', () => {
+    const br = createCableBranch({ x: 0, y: 0 })
+    expect(br.label).toBe('SPLIT')
+  })
+
+  it('starts with handleCount of 3', () => {
+    const br = createCableBranch({ x: 0, y: 0 })
+    expect(br.handleCount).toBe(3)
+  })
+
+  it('has a unique id', () => {
+    const a = createCableBranch({ x: 0, y: 0 })
+    const b = createCableBranch({ x: 0, y: 0 })
+    expect(a.id).not.toBe(b.id)
+  })
+
+  it('stores the provided position', () => {
+    const br = createCableBranch({ x: 42, y: 99 })
+    expect(br.position).toEqual({ x: 42, y: 99 })
+  })
+})
+
+describe('cableBranchHandleId', () => {
+  it('returns {id}_br_{idx}', () => {
+    expect(cableBranchHandleId('abc', 0)).toBe('abc_br_0')
+    expect(cableBranchHandleId('abc', 2)).toBe('abc_br_2')
+  })
+})
+
+describe('generateBom — cable branches', () => {
+  it('adds a BRANCH-WRAP line for each branch node', () => {
+    const br = createCableBranch({ x: 0, y: 0 })
+    const bom = generateBom([], [], [], [], [], [], [], [], [br])
+    expect(bom.lines.some((l) => l.partNumber === 'BRANCH-WRAP')).toBe(true)
+  })
+
+  it('qty equals number of branch nodes', () => {
+    const br1 = createCableBranch({ x: 0, y: 0 })
+    const br2 = createCableBranch({ x: 100, y: 0 })
+    const bom = generateBom([], [], [], [], [], [], [], [], [br1, br2])
+    const line = bom.lines.find((l) => l.partNumber === 'BRANCH-WRAP')!
+    expect(line.qty).toBe(2)
+  })
+
+  it('returns no branch line when there are no branches', () => {
+    const bom = generateBom([], [], [], [], [])
+    expect(bom.lines.some((l) => l.partNumber === 'BRANCH-WRAP')).toBe(false)
+  })
+})
+
+describe('generateBuildSteps — cable branches', () => {
+  it('includes a Cable Branch section for each branch', () => {
+    const br = createCableBranch({ x: 0, y: 0 })
+    br.label = 'Y1'
+    const out = generateBuildSteps([], [], [], [], [], 'Test', [], [], [], [br])
+    expect(out).toContain('Cable Branch')
+    expect(out).toContain('Y1')
+  })
+
+  it('resolves wires on each arm of the branch', () => {
+    const a = createConnector('ECU', 'DTM-2', 2, 5, 'BOOT', 0.5, { x: 0, y: 0 })
+    const b = createConnector('Sensor', 'DTM-2', 2, 5, 'BOOT', 0.5, { x: 100, y: 0 })
+    const br = createCableBranch({ x: 50, y: 0 })
+    br.label = 'SP'
+    const h0 = cableBranchHandleId(br.id, 0)
+    const w: Wire = {
+      ...createWire('Wire 1'), awg: '22', lengthInches: 12,
+      startTerminalId: a.terminals[0].id, endTerminalId: h0
+    }
+    const out = generateBuildSteps([a, b], [w], [], [], [], 'Test', [], [], [], [br])
+    expect(out).toContain('Wire 1')
+    expect(out).toContain('SP')
   })
 })
 

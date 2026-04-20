@@ -1,10 +1,10 @@
 import { create } from 'zustand'
 import {
-  ConnectorNode, Wire, Cable, SpliceNode, GroundNode, FuseBlock, PowerRail, PowerBus,
+  ConnectorNode, Wire, Cable, SpliceNode, GroundNode, FuseBlock, PowerRail, PowerBus, CableBranch,
   createConnector, createTerminal, createWire, createCable, createSplice, createGround,
-  createFuseBlock, createPowerRail, createPowerBus,
+  createFuseBlock, createPowerRail, createPowerBus, createCableBranch,
   groundHandleId, fuseBlockInHandle, fuseBlockOutHandle, powerRailPosHandle, powerRailNegHandle,
-  powerBusInHandle, powerBusOutHandle,
+  powerBusInHandle, powerBusOutHandle, cableBranchHandleId,
   generateBom, validateHarness,
   Bom, ValidationIssue
 } from '../models'
@@ -35,6 +35,7 @@ interface CoreSnapshot {
   fuseBlocks: FuseBlock[]
   powerRails: PowerRail[]
   powerBuses: PowerBus[]
+  cableBranches: CableBranch[]
 }
 
 interface HarnessState {
@@ -49,8 +50,9 @@ interface HarnessState {
   fuseBlocks: FuseBlock[]
   powerRails: PowerRail[]
   powerBuses: PowerBus[]
+  cableBranches: CableBranch[]
   selectedId: string | null
-  selectedType: 'connector' | 'wire' | 'cable' | 'splice' | 'ground' | 'fuseBlock' | 'powerRail' | 'powerBus' | null
+  selectedType: 'connector' | 'wire' | 'cable' | 'splice' | 'ground' | 'fuseBlock' | 'powerRail' | 'powerBus' | 'cableBranch' | null
 
   // History
   past: CoreSnapshot[]
@@ -118,6 +120,22 @@ interface HarnessState {
   removePowerBus: (id: string) => void
   movePowerBus: (id: string, position: { x: number; y: number }) => void
 
+  // Cable branch actions
+  addCableBranch: (position?: { x: number; y: number }) => void
+  updateCableBranch: (id: string, patch: Partial<Omit<CableBranch, 'id'>>) => void
+  removeCableBranch: (id: string) => void
+  moveCableBranch: (id: string, position: { x: number; y: number }) => void
+  /**
+   * Split every wire in `cableId` at this branch point.
+   * Each wire A→B becomes: A→branch (stays in cable) + branch→B (new unassigned stub).
+   * The new stubs keep the same colour/AWG; assign them to the outgoing cable manually.
+   */
+  injectCableThroughBranch: (branchId: string, cableId: string) => void
+
+  // Wire actions — reconnect
+  /** Move one endpoint of a wire from oldHandle to newHandle. */
+  reconnectWire: (wireId: string, oldHandle: string, newHandle: string) => void
+
   // Selection
   select: (id: string | null, type: HarnessState['selectedType']) => void
 
@@ -136,7 +154,8 @@ export const useHarnessStore = create<HarnessState>((set, get) => {
     const s = get()
     return { connectors: s.connectors, wires: s.wires, cables: s.cables,
              splices: s.splices, grounds: s.grounds,
-             fuseBlocks: s.fuseBlocks, powerRails: s.powerRails, powerBuses: s.powerBuses }
+             fuseBlocks: s.fuseBlocks, powerRails: s.powerRails, powerBuses: s.powerBuses,
+             cableBranches: s.cableBranches }
   }
 
   /** Call before every state-mutating action to push a history entry. */
@@ -160,6 +179,7 @@ export const useHarnessStore = create<HarnessState>((set, get) => {
   fuseBlocks: [],
   powerRails: [],
   powerBuses: [],
+  cableBranches: [],
   selectedId: null,
   selectedType: null,
   past: [],
@@ -270,7 +290,7 @@ export const useHarnessStore = create<HarnessState>((set, get) => {
 
   addWire: (startTerminalId, endTerminalId) => {
     pushHistory()
-    const { connectors, grounds, powerBuses } = get()
+    const { connectors, grounds, powerBuses, cableBranches } = get()
 
     // Enforce one wire per regular connector pin
     const terminalAlreadyUsed = (hid: string | undefined) => {
@@ -320,7 +340,19 @@ export const useHarnessStore = create<HarnessState>((set, get) => {
         return pb
       })
 
-      return { wires: [...s.wires, wire], connectors, grounds, powerBuses: buses }
+      // Auto-grow cable branch handles — always keep ≥1 spare
+      const branches = s.cableBranches.map((br) => {
+        const myHandles = Array.from({ length: br.handleCount }, (_, i) => cableBranchHandleId(br.id, i))
+        if (
+          (startTerminalId && myHandles.includes(startTerminalId)) ||
+          (endTerminalId && myHandles.includes(endTerminalId))
+        ) {
+          return { ...br, handleCount: br.handleCount + 1 }
+        }
+        return br
+      })
+
+      return { wires: [...s.wires, wire], connectors, grounds, powerBuses: buses, cableBranches: branches }
     })
   },
 
@@ -635,14 +667,268 @@ export const useHarnessStore = create<HarnessState>((set, get) => {
     set((s) => ({ powerBuses: s.powerBuses.map((pb) => (pb.id === id ? { ...pb, position } : pb)) }))
   },
 
+  // ── Cable Branches ─────────────────────────────────────────────────────────
+
+  addCableBranch: (position) => {
+    pushHistory()
+    const pos = position ?? { x: 200 + Math.random() * 300, y: 150 + Math.random() * 200 }
+    const br = createCableBranch(pos)
+    set((s) => ({ cableBranches: [...s.cableBranches, br] }))
+    get().select(br.id, 'cableBranch')
+  },
+
+  updateCableBranch: (id, patch) => {
+    pushHistory()
+    set((s) => ({ cableBranches: s.cableBranches.map((br) => (br.id === id ? { ...br, ...patch } : br)) }))
+  },
+
+  removeCableBranch: (id) => {
+    pushHistory()
+    const br = get().cableBranches.find((b) => b.id === id)
+    if (!br) return
+    const handles = new Set(
+      Array.from({ length: br.handleCount }, (_, i) => cableBranchHandleId(id, i))
+    )
+    const wireIdsToRemove = get().wires
+      .filter((w) =>
+        (w.startTerminalId && handles.has(w.startTerminalId)) ||
+        (w.endTerminalId && handles.has(w.endTerminalId))
+      )
+      .map((w) => w.id)
+    set((s) => ({
+      cableBranches: s.cableBranches.filter((b) => b.id !== id),
+      wires: s.wires.filter((w) => !wireIdsToRemove.includes(w.id)),
+      cables: s.cables.map((ca) => ({ ...ca, wireIds: ca.wireIds.filter((wid) => !wireIdsToRemove.includes(wid)) })),
+      selectedId: s.selectedId === id ? null : s.selectedId,
+      selectedType: s.selectedId === id ? null : s.selectedType
+    }))
+  },
+
+  moveCableBranch: (id, position) => {
+    set((s) => ({ cableBranches: s.cableBranches.map((br) => (br.id === id ? { ...br, position } : br)) }))
+  },
+
+  injectCableThroughBranch: (branchId, cableId) => {
+    pushHistory()
+    const s = get()
+    const branch = s.cableBranches.find((b) => b.id === branchId)
+    if (!branch) return
+    const sourceCable = s.cables.find((c) => c.id === cableId)
+    if (!sourceCable) return
+    const cableWires = s.wires.filter(
+      (w) => w.cableId === cableId && w.startTerminalId && w.endTerminalId
+    )
+    if (cableWires.length === 0) return
+
+    // Build handle→node maps
+    const handleToNodeId = new Map<string, string>()
+    const nodeIdToName = new Map<string, string>()
+    for (const c of s.connectors) {
+      nodeIdToName.set(c.id, c.name)
+      for (const t of c.terminals) handleToNodeId.set(t.id, c.id)
+    }
+    for (const sp of s.splices) {
+      nodeIdToName.set(sp.id, sp.label)
+      for (let i = 0; i < sp.handleCount; i++) handleToNodeId.set(`${sp.id}_${i}`, sp.id)
+    }
+    for (const g of s.grounds) {
+      nodeIdToName.set(g.id, g.label)
+      for (let i = 0; i < g.handleCount; i++) handleToNodeId.set(`${g.id}_gnd_${i}`, g.id)
+    }
+    for (const b of s.cableBranches) {
+      nodeIdToName.set(b.id, b.label)
+      for (let i = 0; i < b.handleCount; i++) handleToNodeId.set(`${b.id}_br_${i}`, b.id)
+    }
+
+    // Count how many wires (across all cables) connect to each node.
+    // The node with the most connections is the trunk/hub — inject cuts on that side
+    // so the trunk stubs go into the shared trunk cable and the original cable keeps
+    // its leaf-side wires (e.g. SPLIT → L stays as cable "L").
+    const nodeWireCount = new Map<string, number>()
+    for (const c of s.cables) {
+      for (const wid of c.wireIds) {
+        const w = s.wires.find((w2) => w2.id === wid)
+        if (!w || !w.startTerminalId || !w.endTerminalId) continue
+        const sn = handleToNodeId.get(w.startTerminalId)
+        const tn = handleToNodeId.get(w.endTerminalId)
+        if (sn) nodeWireCount.set(sn, (nodeWireCount.get(sn) ?? 0) + 1)
+        if (tn) nodeWireCount.set(tn, (nodeWireCount.get(tn) ?? 0) + 1)
+      }
+    }
+
+    let nextIdx = branch.handleCount
+    const newWires: Wire[] = []
+    const wirePatches = new Map<string, { startTerminalId?: string; endTerminalId?: string }>()
+    const terminalRemap = new Map<string, string>()
+    // Group trunk stubs by trunk node → one trunk cable per hub connector
+    const stubsByTrunk = new Map<string, Wire[]>()
+    // Track the leaf node so we can rename the source cable to "[branch] → [leaf]"
+    let leafNodeId: string | null = null
+
+    for (const w of cableWires) {
+      const brHandle = cableBranchHandleId(branchId, nextIdx++)
+      const startNode = handleToNodeId.get(w.startTerminalId!)
+      const endNode   = handleToNodeId.get(w.endTerminalId!)
+      const startCount = nodeWireCount.get(startNode ?? '') ?? 0
+      const endCount   = nodeWireCount.get(endNode   ?? '') ?? 0
+      // Cut on the trunk (more-connected) side; default to end if equal
+      const cutAtStart = startCount > endCount
+
+      const stub = createWire(w.name)
+      stub.color = w.color
+      stub.awg = w.awg
+      stub.lengthInches = sourceCable.lengthInches
+      stub.cableId = null
+
+      let trunkNodeId: string
+      if (cutAtStart) {
+        const oldStart = w.startTerminalId!
+        stub.startTerminalId = oldStart
+        stub.endTerminalId = brHandle
+        wirePatches.set(w.id, { startTerminalId: brHandle })
+        if (s.connectors.some((c) => c.terminals.some((t) => t.id === oldStart)))
+          terminalRemap.set(oldStart, stub.id)
+        trunkNodeId = startNode ?? oldStart
+        if (!leafNodeId) leafNodeId = endNode ?? null
+      } else {
+        const oldEnd = w.endTerminalId!
+        stub.startTerminalId = brHandle
+        stub.endTerminalId = oldEnd
+        wirePatches.set(w.id, { endTerminalId: brHandle })
+        if (s.connectors.some((c) => c.terminals.some((t) => t.id === oldEnd)))
+          terminalRemap.set(oldEnd, stub.id)
+        trunkNodeId = endNode ?? oldEnd
+        if (!leafNodeId) leafNodeId = startNode ?? null
+      }
+
+      newWires.push(stub)
+      if (!stubsByTrunk.has(trunkNodeId)) stubsByTrunk.set(trunkNodeId, [])
+      stubsByTrunk.get(trunkNodeId)!.push(stub)
+    }
+
+    // Rename the source cable to "[branch.label] → [leaf connector]"
+    const leafName = leafNodeId ? (nodeIdToName.get(leafNodeId) ?? sourceCable.name) : sourceCable.name
+    const newSourceCableName = `${branch.label} → ${leafName}`
+
+    // Create or merge trunk cables
+    const newCables: Cable[] = []
+    const existingCableAppend = new Map<string, string[]>()
+
+    for (const [trunkNodeId, stubs] of stubsByTrunk) {
+      // Find existing trunk cable: wires going from trunkNode → branch (or vice-versa)
+      const existing = s.cables.find((c) =>
+        s.wires.some((w) => {
+          if (!c.wireIds.includes(w.id)) return false
+          if (!w.startTerminalId || !w.endTerminalId) return false
+          const startAtBranch  = w.startTerminalId.startsWith(`${branchId}_br_`)
+          const endAtBranch    = w.endTerminalId.startsWith(`${branchId}_br_`)
+          const startIsTrunk   = handleToNodeId.get(w.startTerminalId) === trunkNodeId
+          const endIsTrunk     = handleToNodeId.get(w.endTerminalId)   === trunkNodeId
+          return (startAtBranch && endIsTrunk) || (endAtBranch && startIsTrunk)
+        })
+      )
+
+      if (existing) {
+        if (!existingCableAppend.has(existing.id)) existingCableAppend.set(existing.id, [])
+        existingCableAppend.get(existing.id)!.push(...stubs.map((st) => st.id))
+        for (const stub of stubs) stub.cableId = existing.id
+      } else {
+        const trunkName = nodeIdToName.get(trunkNodeId) ?? 'Main'
+        const outCable = createCable()
+        outCable.name = `${trunkName} → ${branch.label}`
+        outCable.lengthInches = sourceCable.lengthInches
+        outCable.wireIds = stubs.map((st) => st.id)
+        newCables.push(outCable)
+        for (const stub of stubs) stub.cableId = outCable.id
+      }
+    }
+
+    const newHandleCount = nextIdx + 1   // keep one spare
+
+    set((st) => ({
+      wires: [
+        ...st.wires.map((w) => {
+          const p = wirePatches.get(w.id)
+          return p ? { ...w, ...p } : w
+        }),
+        ...newWires,
+      ],
+      cables: [
+        ...st.cables.map((c) => {
+          if (c.id === cableId) return { ...c, name: newSourceCableName }
+          const append = existingCableAppend.get(c.id)
+          return append ? { ...c, wireIds: [...c.wireIds, ...append] } : c
+        }),
+        ...newCables,
+      ],
+      connectors: st.connectors.map((c) => ({
+        ...c,
+        terminals: c.terminals.map((t) =>
+          terminalRemap.has(t.id) ? { ...t, wireId: terminalRemap.get(t.id)! } : t
+        ),
+      })),
+      cableBranches: st.cableBranches.map((br) =>
+        br.id === branchId ? { ...br, handleCount: newHandleCount } : br
+      ),
+    }))
+  },
+
+  reconnectWire: (wireId, oldHandle, newHandle) => {
+    pushHistory()
+    const wire = get().wires.find((w) => w.id === wireId)
+    if (!wire) return
+    const isStart = wire.startTerminalId === oldHandle
+    if (!isStart && wire.endTerminalId !== oldHandle) return   // stale call
+
+    // Reject if the new target is a connector terminal already occupied by another wire
+    const occupied = get().connectors.some((c) =>
+      c.terminals.some((t) => t.id === newHandle && t.wireId !== null && t.wireId !== wireId)
+    )
+    if (occupied) {
+      console.warn('Wireman: reconnect rejected — that pin already has a wire.')
+      return
+    }
+
+    set((s) => {
+      const wires = s.wires.map((w) =>
+        w.id !== wireId ? w :
+          isStart ? { ...w, startTerminalId: newHandle }
+                  : { ...w, endTerminalId: newHandle }
+      )
+
+      const connectors = s.connectors.map((c) => ({
+        ...c,
+        terminals: c.terminals.map((t) => {
+          if (t.id === oldHandle) return { ...t, wireId: null }
+          if (t.id === newHandle) return { ...t, wireId: wireId }
+          return t
+        }),
+      }))
+
+      // Auto-grow ground handles when reconnecting onto a ground
+      const grounds = s.grounds.map((g) => {
+        const mine = Array.from({ length: g.handleCount }, (_, i) => groundHandleId(g.id, i))
+        return mine.includes(newHandle) ? { ...g, handleCount: g.handleCount + 1 } : g
+      })
+
+      // Auto-grow cable branch handles when reconnecting onto a branch
+      const cableBranches = s.cableBranches.map((br) => {
+        const mine = Array.from({ length: br.handleCount }, (_, i) => cableBranchHandleId(br.id, i))
+        return mine.includes(newHandle) ? { ...br, handleCount: br.handleCount + 1 } : br
+      })
+
+      return { wires, connectors, grounds, cableBranches }
+    })
+  },
+
   // ── Selection / computed ─────────────────────────────────────────────────
 
   select: (id, type) => set({ selectedId: id, selectedType: type }),
 
   saveToFile: async () => {
-    const { projectName, connectors, wires, cables, splices, grounds, fuseBlocks, powerRails, powerBuses } = get()
+    const { projectName, connectors, wires, cables, splices, grounds, fuseBlocks, powerRails, powerBuses, cableBranches } = get()
     const json = JSON.stringify(
-      { version: FILE_VERSION, projectName, connectors, wires, cables, splices, grounds, fuseBlocks, powerRails, powerBuses },
+      { version: FILE_VERSION, projectName, connectors, wires, cables, splices, grounds, fuseBlocks, powerRails, powerBuses, cableBranches },
       null, 2
     )
     await window.api.saveHarness(json, projectName)
@@ -660,17 +946,18 @@ export const useHarnessStore = create<HarnessState>((set, get) => {
       if (fileVer < 1) { console.error('Wireman: unrecognised file format'); return }
       pushHistory()
       set({
-        projectName:  data.projectName ?? 'My Harness',
-        connectors:   data.connectors  ?? [],
-        wires:        data.wires       ?? [],
-        cables:       data.cables      ?? [],
-        splices:      data.splices     ?? [],
-        grounds:      data.grounds     ?? [],
-        fuseBlocks:   data.fuseBlocks  ?? [],
-        powerRails:   data.powerRails  ?? [],
-        powerBuses:   data.powerBuses  ?? [],
-        selectedId:   null,
-        selectedType: null,
+        projectName:   data.projectName   ?? 'My Harness',
+        connectors:    data.connectors    ?? [],
+        wires:         data.wires         ?? [],
+        cables:        data.cables        ?? [],
+        splices:       data.splices       ?? [],
+        grounds:       data.grounds       ?? [],
+        fuseBlocks:    data.fuseBlocks    ?? [],
+        powerRails:    data.powerRails    ?? [],
+        powerBuses:    data.powerBuses    ?? [],
+        cableBranches: data.cableBranches ?? [],
+        selectedId:    null,
+        selectedType:  null,
       })
     } catch (e) {
       console.error('Failed to parse harness file', e)
@@ -679,11 +966,11 @@ export const useHarnessStore = create<HarnessState>((set, get) => {
 
   getBom: () => {
     const s = get()
-    return generateBom(s.connectors, s.wires, s.cables, s.splices, s.grounds, s.fuseBlocks, s.powerRails, s.powerBuses)
+    return generateBom(s.connectors, s.wires, s.cables, s.splices, s.grounds, s.fuseBlocks, s.powerRails, s.powerBuses, s.cableBranches)
   },
   getValidation: () => {
     const s = get()
-    return validateHarness(s.connectors, s.wires, s.splices, s.grounds, s.fuseBlocks, s.powerRails, s.powerBuses)
+    return validateHarness(s.connectors, s.wires, s.splices, s.grounds, s.fuseBlocks, s.powerRails, s.powerBuses, s.cableBranches, s.cables)
   }
   })
 })

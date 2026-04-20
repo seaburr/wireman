@@ -555,6 +555,106 @@ body, #root {
   background: #d69e2e !important;
 }
 
+/* ── Cable Branch Node ───────────────────────────── */
+
+.cable-branch-node {
+  width: 40px;
+  height: 40px;
+  position: relative;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cable-branch-node__inner {
+  width: 28px;
+  height: 28px;
+  transform: rotate(45deg);
+  background: #243040;
+  border: 2px solid #63b3ed;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cable-branch-node--selected .cable-branch-node__inner {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(66,153,225,0.35);
+}
+
+.cable-branch-node__label {
+  font-size: 6px;
+  font-weight: 700;
+  color: #63b3ed;
+  font-family: monospace;
+  transform: rotate(-45deg);
+  white-space: nowrap;
+}
+
+.branch-handle {
+  width: 8px !important;
+  height: 8px !important;
+  border-radius: 50% !important;
+  background: #4a5568 !important;
+  border: 1px solid #243040 !important;
+}
+
+.branch-handle--connected {
+  background: #63b3ed !important;
+}
+
+/* ── Branch arm rows (properties panel) ──────────── */
+
+.branch-arm-row {
+  background: var(--panel-bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 6px 8px;
+  margin-bottom: 6px;
+  font-size: 12px;
+}
+
+.branch-arm-row__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+
+.branch-arm-row__badge--through {
+  font-size: 10px;
+  font-weight: 600;
+  color: #63b3ed;
+  background: rgba(99,179,237,0.12);
+  border-radius: 3px;
+  padding: 1px 5px;
+}
+
+.branch-arm-row__badge--stub {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: rgba(255,255,255,0.05);
+  border-radius: 3px;
+  padding: 1px 5px;
+}
+
+.branch-arm-row__through {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.branch-arm-row__arrow {
+  color: #63b3ed;
+  font-weight: 700;
+  padding: 0 2px;
+}
+
 /* ── Ground Node ─────────────────────────────────── */
 
 .ground-node {

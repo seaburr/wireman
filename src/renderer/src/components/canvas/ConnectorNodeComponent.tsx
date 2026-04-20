@@ -104,6 +104,7 @@ export function ConnectorNodeComponent({ data, selected }: NodeProps<ConnectorFl
       className={`connector-node${selected ? ' connector-node--selected' : ''}`}
       style={{ width: nodeW }}
       onClick={(e) => { e.stopPropagation(); select(data.id, 'connector') }}
+      title={`${data.name} — ${data.model} (${data.terminals.length}-pin connector). Drag from a pin handle to draw a wire.`}
     >
       <div className="connector-node__header">
         <span className="connector-node__name">{data.name}</span>

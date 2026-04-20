@@ -13,26 +13,29 @@ const DEFAULT_FORM = {
 
 export function Sidebar() {
   const {
-    addConnector, addCable, addSplice, addGround, addFuseBlock, addPowerRail, addPowerBus,
-    connectors, cables, splices, grounds, fuseBlocks, powerRails, powerBuses, wires,
-    removeConnector, removeCable, removeSplice, removeGround, removeFuseBlock, removePowerRail, removePowerBus,
+    addConnector, addCable, addSplice, addGround, addFuseBlock, addPowerRail, addPowerBus, addCableBranch,
+    connectors, cables, splices, grounds, fuseBlocks, powerRails, powerBuses, cableBranches, wires,
+    removeConnector, removeCable, removeSplice, removeGround, removeFuseBlock, removePowerRail, removePowerBus, removeCableBranch,
     selectedId, select
   } = useHarnessStore(
     useShallow((s) => ({
       addConnector: s.addConnector, addCable: s.addCable, addSplice: s.addSplice, addGround: s.addGround,
       addFuseBlock: s.addFuseBlock, addPowerRail: s.addPowerRail, addPowerBus: s.addPowerBus,
+      addCableBranch: s.addCableBranch,
       connectors: s.connectors, cables: s.cables, splices: s.splices, grounds: s.grounds,
-      fuseBlocks: s.fuseBlocks, powerRails: s.powerRails, powerBuses: s.powerBuses, wires: s.wires,
+      fuseBlocks: s.fuseBlocks, powerRails: s.powerRails, powerBuses: s.powerBuses,
+      cableBranches: s.cableBranches, wires: s.wires,
       removeConnector: s.removeConnector, removeCable: s.removeCable,
       removeSplice: s.removeSplice, removeGround: s.removeGround,
       removeFuseBlock: s.removeFuseBlock, removePowerRail: s.removePowerRail, removePowerBus: s.removePowerBus,
+      removeCableBranch: s.removeCableBranch,
       selectedId: s.selectedId, select: s.select
     }))
   )
 
   const [form, setForm] = useState(DEFAULT_FORM)
 
-  const issues = validateHarness(connectors, wires, splices, grounds, fuseBlocks, powerRails, powerBuses)
+  const issues = validateHarness(connectors, wires, splices, grounds, fuseBlocks, powerRails, powerBuses, cableBranches, cables)
   const errors = issues.filter((i) => i.severity === 'error')
   const warnings = issues.filter((i) => i.severity === 'warning')
 
@@ -116,7 +119,7 @@ export function Sidebar() {
         <button className="sidebar__btn sidebar__btn--primary"
           onClick={handleAddConnector}
           disabled={!form.name.trim()}
-          title={!form.name.trim() ? 'Enter a name first' : ''}>
+          title={!form.name.trim() ? 'Enter a name first' : 'Add a connector to the canvas. Connectors represent physical multi-pin connectors (plugs, sockets, headers). Each pin becomes a handle you can draw wires to.'}>
           + Add Connector
         </button>
       </div>
@@ -124,36 +127,50 @@ export function Sidebar() {
       {/* ── Add Splice / Ground / Fuse / Power ─────────── */}
       <div className="sidebar__section sidebar__row--gap">
         <button className="sidebar__btn sidebar__btn--secondary sidebar__btn--half"
-          onClick={() => addSplice()}>
+          onClick={() => addSplice()}
+          title="Splice: an electrical junction where two or more wires are permanently joined (crimped or soldered). Use for wire-to-wire connections that share the same circuit.">
           ⊕ Splice
         </button>
         <button className="sidebar__btn sidebar__btn--secondary sidebar__btn--half"
-          onClick={() => addGround()}>
+          onClick={() => addGround()}
+          title="Ground point: a chassis ground connection. Attach multiple wires to create a common ground reference. Each wire gets its own handle slot.">
           ⏚ Ground
         </button>
       </div>
       <div className="sidebar__section sidebar__row--gap">
         <button className="sidebar__btn sidebar__btn--secondary sidebar__btn--half"
-          onClick={() => addFuseBlock()}>
+          onClick={() => addFuseBlock()}
+          title="Fuse block: a distribution block that protects each circuit with a blade fuse. One power input, multiple fused outputs. Set amp ratings per circuit in the properties panel.">
           ⚡ Fuse Block
         </button>
         <button className="sidebar__btn sidebar__btn--secondary sidebar__btn--half"
-          onClick={() => addPowerRail()}>
+          onClick={() => addPowerRail()}
+          title="Battery / power source: provides positive (+) and negative (−) supply terminals. Connect power wires to these terminals.">
           ⚑ Battery
         </button>
       </div>
       <div className="sidebar__section sidebar__row--gap">
         <button className="sidebar__btn sidebar__btn--secondary"
           style={{ width: '100%' }}
-          onClick={() => addPowerBus()}>
+          onClick={() => addPowerBus()}
+          title="Power rail / distribution bus: one power input feeds multiple output taps. Ideal for distributing a single supply (e.g. 12V ignition) to many devices. Outputs grow automatically.">
           ⚡ Power Rail
         </button>
       </div>
       <div className="sidebar__section sidebar__row--gap">
         <button className="sidebar__btn sidebar__btn--secondary"
           style={{ width: '100%' }}
-          onClick={() => addCable()}>
+          onClick={() => addCable()}
+          title="Cable bundle: groups multiple wires into a single physical cable with a shared length. Assign wires to a cable via each wire's properties panel. Bundles can be collapsed to a single edge on the canvas.">
           ⌬ Add Cable Bundle
+        </button>
+      </div>
+      <div className="sidebar__section sidebar__row--gap">
+        <button className="sidebar__btn sidebar__btn--secondary"
+          style={{ width: '100%' }}
+          onClick={() => addCableBranch()}
+          title="Cable branch: a mechanical split/merge point where one cable bundle divides into multiple outgoing cables (or vice-versa). NOT an electrical splice — wires pass through without being joined. Use to model Y-splits in a harness route.">
+          ⑂ Cable Branch
         </button>
       </div>
 
@@ -259,6 +276,24 @@ export function Sidebar() {
               </div>
               <button className="sidebar__btn--icon" title="Remove"
                 onClick={(e) => { e.stopPropagation(); removePowerBus(pb.id) }}>×</button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* ── Cable Branches ──────────────────────────────── */}
+      {cableBranches.length > 0 && (
+        <div className="sidebar__section sidebar__section--list">
+          <h3 className="sidebar__title">Cable Branches ({cableBranches.length})</h3>
+          {cableBranches.map((br) => (
+            <div key={br.id} className={`sidebar__item${selectedId === br.id ? ' sidebar__item--active' : ''}`}
+              onClick={() => select(br.id, 'cableBranch')}>
+              <div>
+                <div className="sidebar__item-name">⑂ {br.label}</div>
+                <div className="sidebar__item-meta">{br.handleCount - 1} wire(s) routed</div>
+              </div>
+              <button className="sidebar__btn--icon" title="Remove"
+                onClick={(e) => { e.stopPropagation(); removeCableBranch(br.id) }}>×</button>
             </div>
           ))}
         </div>

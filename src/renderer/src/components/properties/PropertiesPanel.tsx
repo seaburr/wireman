@@ -1,7 +1,7 @@
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 import { useHarnessStore } from '../../store'
-import { WIRE_COLORS, AWG_DIAMETERS, WireColor, CONNECTOR_PRESETS, ConnectorNode, FuseBlock, powerRailPosHandle, powerRailNegHandle, powerBusInHandle, powerBusOutHandle } from '../../models'
+import { WIRE_COLORS, AWG_DIAMETERS, WireColor, CONNECTOR_PRESETS, ConnectorNode, FuseBlock, powerRailPosHandle, powerRailNegHandle, powerBusInHandle, powerBusOutHandle, cableBranchHandleId } from '../../models'
 
 function ConnectorReconfig({ connector }: { connector: ConnectorNode }) {
   const changeConnectorModel = useHarnessStore((s) => s.changeConnectorModel)
@@ -98,25 +98,150 @@ function ConnectorReconfig({ connector }: { connector: ConnectorNode }) {
   )
 }
 
+// ── CableBranch sub-panel ──────────────────────────────────────────────────────
+
+import type { CableBranch, Cable as CableType } from '../../models'
+
+type ArmWireEntry = {
+  id: string; name: string; color: string
+  cableName: string | null
+  /** true = branch handle is this wire's startTerminalId (wire exits branch toward dest) */
+  isStart: boolean
+}
+type ArmEntry = { handleIdx: number; wires: ArmWireEntry[] }
+
+function CableBranchPanel({
+  branch, cables, armEntries, updateCableBranch, injectCableThroughBranch, removeCableBranch
+}: {
+  branch: CableBranch
+  cables: CableType[]
+  armEntries: ArmEntry[]
+  updateCableBranch: (id: string, patch: Partial<Omit<CableBranch, 'id'>>) => void
+  injectCableThroughBranch: (branchId: string, cableId: string) => void
+  removeCableBranch: (id: string) => void
+}) {
+  const [injectCableId, setInjectCableId] = useState('')
+
+  const handleInject = useCallback(() => {
+    if (!injectCableId) return
+    injectCableThroughBranch(branch.id, injectCableId)
+    setInjectCableId('')
+  }, [branch.id, injectCableId, injectCableThroughBranch])
+
+  return (
+    <aside className="properties-panel">
+      <h3 className="properties-panel__title">⑂ Cable Branch</h3>
+      <p className="properties-panel__hint">
+        Mechanical routing split/merge point. Each arm connects two wire segments —
+        one from the main cable, one from a sub-cable — that share the same branch
+        handle to form a continuous circuit path.
+      </p>
+
+      <label className="properties-panel__label">Label</label>
+      <input className="properties-panel__input" value={branch.label}
+        onChange={(e) => updateCableBranch(branch.id, { label: e.target.value })} />
+
+      {/* ── Inject workflow ─────────────────────────── */}
+      <h4 className="properties-panel__subtitle" style={{ marginTop: 12 }}>
+        Inject Cable Through Branch
+      </h4>
+      <p className="properties-panel__hint">
+        Pick a cable and click <strong>Inject</strong>. Each wire is cut here:
+        the entry segment stays in the original cable; an exit stub is automatically
+        created and added to a new outgoing cable named after its destination.
+      </p>
+      <label className="properties-panel__label">Cable to split</label>
+      <select className="properties-panel__select"
+        value={injectCableId}
+        onChange={(e) => setInjectCableId(e.target.value)}>
+        <option value="">— pick a cable —</option>
+        {cables.map((ca) => (
+          <option key={ca.id} value={ca.id}>{ca.name} ({ca.wireIds.length} wires)</option>
+        ))}
+      </select>
+      <button
+        className="properties-panel__btn properties-panel__btn--secondary"
+        onClick={handleInject}
+        disabled={!injectCableId}
+        title="Split the selected cable at this branch. Entry segments stay in the original cable; exit stubs get their own outgoing cable per destination.">
+        ⑂ Inject
+      </button>
+
+      {/* ── Per-arm through-connection display ──────── */}
+      {armEntries.length > 0 && (
+        <div className="properties-panel__terminals" style={{ marginTop: 12 }}>
+          <h4 className="properties-panel__subtitle">Arms</h4>
+          {armEntries.map(({ handleIdx, wires }) => {
+            const isThrough = wires.length === 2
+            return (
+              <div key={handleIdx} className="branch-arm-row">
+                <div className="branch-arm-row__header">
+                  <span>Arm {handleIdx}</span>
+                  <span className={isThrough ? 'branch-arm-row__badge--through' : 'branch-arm-row__badge--stub'}>
+                    {isThrough ? '↔ through' : '○ stub'}
+                  </span>
+                </div>
+                {isThrough ? (
+                  // Show the two wires as a connected pair
+                  <div className="branch-arm-row__through">
+                    {wires.map((w, i) => (
+                      <span key={w.id}>
+                        <span className="terminal-row__wire"
+                          style={{ borderLeftColor: WIRE_COLORS[w.color as keyof typeof WIRE_COLORS] ?? '#718096' }}>
+                          {w.name}{w.cableName ? ` [${w.cableName}]` : ''}
+                        </span>
+                        {i === 0 && <span className="branch-arm-row__arrow">↔</span>}
+                      </span>
+                    ))}
+                  </div>
+                ) : (
+                  // Single stub
+                  wires.map((w) => (
+                    <div key={w.id} className="terminal-row">
+                      <span className="terminal-row__wire"
+                        style={{ borderLeftColor: WIRE_COLORS[w.color as keyof typeof WIRE_COLORS] ?? '#718096' }}>
+                        {w.name}{w.cableName ? ` [${w.cableName}]` : ''}
+                      </span>
+                      <span className="terminal-row__empty">open end</span>
+                    </div>
+                  ))
+                )}
+              </div>
+            )
+          })}
+        </div>
+      )}
+
+      <button className="properties-panel__btn properties-panel__btn--danger"
+        onClick={() => removeCableBranch(branch.id)}>Delete Branch</button>
+    </aside>
+  )
+}
+
 export function PropertiesPanel() {
   const {
-    connectors, wires, cables, splices, grounds, fuseBlocks, powerRails, powerBuses,
+    connectors, wires, cables, splices, grounds, fuseBlocks, powerRails, powerBuses, cableBranches,
     selectedId, selectedType,
-    updateWire, updateConnector, updateCable, updateSplice, updateGround, updateFuseBlock, updatePowerRail, updatePowerBus,
-    removeWire, removeConnector, removeCable, removeSplice, removeGround, removeFuseBlock, removePowerRail, removePowerBus,
+    updateWire, updateConnector, updateCable, updateSplice, updateGround, updateFuseBlock, updatePowerRail, updatePowerBus, updateCableBranch,
+    removeWire, removeConnector, removeCable, removeSplice, removeGround, removeFuseBlock, removePowerRail, removePowerBus, removeCableBranch,
+    injectCableThroughBranch,
     assignWireToCable, toggleCableCollapsed
   } = useHarnessStore(
     useShallow((s) => ({
       connectors: s.connectors, wires: s.wires, cables: s.cables,
       splices: s.splices, grounds: s.grounds,
       fuseBlocks: s.fuseBlocks, powerRails: s.powerRails, powerBuses: s.powerBuses,
+      cableBranches: s.cableBranches,
       selectedId: s.selectedId, selectedType: s.selectedType,
       updateWire: s.updateWire, updateConnector: s.updateConnector,
       updateCable: s.updateCable, updateSplice: s.updateSplice, updateGround: s.updateGround,
       updateFuseBlock: s.updateFuseBlock, updatePowerRail: s.updatePowerRail, updatePowerBus: s.updatePowerBus,
+      updateCableBranch: s.updateCableBranch,
       removeWire: s.removeWire, removeConnector: s.removeConnector,
       removeCable: s.removeCable, removeSplice: s.removeSplice, removeGround: s.removeGround,
       removeFuseBlock: s.removeFuseBlock, removePowerRail: s.removePowerRail, removePowerBus: s.removePowerBus,
+      removeCableBranch: s.removeCableBranch,
+      injectCableThroughBranch: s.injectCableThroughBranch,
       assignWireToCable: s.assignWireToCable, toggleCableCollapsed: s.toggleCableCollapsed
     }))
   )
@@ -124,7 +249,18 @@ export function PropertiesPanel() {
   if (!selectedId) {
     return (
       <aside className="properties-panel properties-panel--empty">
-        <p>Click a connector, wire, splice, or cable to inspect it.</p>
+        <p>Click a node or wire to inspect it.</p>
+        <p className="properties-panel__hint" style={{ marginTop: 8 }}>
+          <strong>Connector</strong> — multi-pin plug or socket.<br/>
+          <strong>Wire</strong> — single conductor between two pins.<br/>
+          <strong>Cable</strong> — bundle of wires sharing one length.<br/>
+          <strong>Cable Branch</strong> — mechanical split/merge point; wires route through without electrical joining.<br/>
+          <strong>Splice</strong> — electrical crimp/solder junction.<br/>
+          <strong>Ground</strong> — chassis ground reference.<br/>
+          <strong>Fuse Block</strong> — fused distribution block.<br/>
+          <strong>Battery</strong> — power source (+/−).<br/>
+          <strong>Power Rail</strong> — multi-tap distribution bus.
+        </p>
       </aside>
     )
   }
@@ -571,6 +707,38 @@ export function PropertiesPanel() {
           onClick={() => removePowerBus(pb.id)}>Delete Power Rail</button>
       </aside>
     )
+  }
+
+  // ── Cable Branch ───────────────────────────────────────────────────────────
+
+  if (selectedType === 'cableBranch') {
+    const branch = cableBranches.find((b) => b.id === selectedId)
+    if (!branch) return null
+
+    // Build per-handle arm entries: for each handle that has ≥1 wire, record which wires touch it
+    const armEntries: ArmEntry[] = []
+    for (let i = 0; i < branch.handleCount; i++) {
+      const hid = cableBranchHandleId(branch.id, i)
+      const hw = wires.filter((w) => w.startTerminalId === hid || w.endTerminalId === hid)
+      if (hw.length === 0) continue  // spare handle, skip
+      armEntries.push({
+        handleIdx: i,
+        wires: hw.map((w) => ({
+          id: w.id, name: w.name, color: w.color,
+          cableName: w.cableId ? (cables.find((c) => c.id === w.cableId)?.name ?? null) : null,
+          isStart: w.startTerminalId === hid,
+        })),
+      })
+    }
+
+    return <CableBranchPanel
+      branch={branch}
+      cables={cables}
+      armEntries={armEntries}
+      updateCableBranch={updateCableBranch}
+      injectCableThroughBranch={injectCableThroughBranch}
+      removeCableBranch={removeCableBranch}
+    />
   }
 
   // ── Ground ─────────────────────────────────────────────────────────────────

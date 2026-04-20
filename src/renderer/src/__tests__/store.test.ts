@@ -8,7 +8,7 @@ function resetStore() {
   useHarnessStore.setState({
     projectName: 'Test',
     connectors: [], wires: [], cables: [], splices: [], grounds: [],
-    fuseBlocks: [], powerRails: [], powerBuses: [],
+    fuseBlocks: [], powerRails: [], powerBuses: [], cableBranches: [],
     selectedId: null, selectedType: null,
     past: [], future: [],
   })
@@ -508,6 +508,257 @@ describe('undo with fuseBlocks and powerRails', () => {
     get().addPowerBus({ x: 0, y: 0 })
     get().undo()
     expect(get().powerBuses).toHaveLength(0)
+  })
+})
+
+// ── Cable Branches ────────────────────────────────────────────────────────────
+
+describe('addCableBranch / removeCableBranch', () => {
+  it('adds a cable branch with default label SPLIT', () => {
+    get().addCableBranch({ x: 0, y: 0 })
+    expect(get().cableBranches).toHaveLength(1)
+    expect(get().cableBranches[0].label).toBe('SPLIT')
+  })
+
+  it('starts with handleCount of 3', () => {
+    get().addCableBranch({ x: 0, y: 0 })
+    expect(get().cableBranches[0].handleCount).toBe(3)
+  })
+
+  it('auto-selects the new branch', () => {
+    get().addCableBranch({ x: 0, y: 0 })
+    expect(get().selectedId).toBe(get().cableBranches[0].id)
+    expect(get().selectedType).toBe('cableBranch')
+  })
+
+  it('removes a cable branch', () => {
+    get().addCableBranch({ x: 0, y: 0 })
+    get().removeCableBranch(get().cableBranches[0].id)
+    expect(get().cableBranches).toHaveLength(0)
+  })
+
+  it('removing a cable branch also removes its connected wires', () => {
+    get().addCableBranch({ x: 0, y: 0 })
+    get().addConnector('A', 'DTM-2', 2, 5, 'BOOT', 0.5)
+    const br = get().cableBranches[0]
+    const terminal = get().connectors[0].terminals[0]
+    get().addWire(terminal.id, `${br.id}_br_0`)
+    expect(get().wires).toHaveLength(1)
+    get().removeCableBranch(br.id)
+    expect(get().wires).toHaveLength(0)
+  })
+
+  it('clears selection when the selected branch is removed', () => {
+    get().addCableBranch({ x: 0, y: 0 })
+    const id = get().cableBranches[0].id
+    get().removeCableBranch(id)
+    expect(get().selectedId).toBeNull()
+  })
+
+  it('pushes a history entry on add', () => {
+    const before = get().past.length
+    get().addCableBranch({ x: 0, y: 0 })
+    expect(get().past.length).toBe(before + 1)
+  })
+})
+
+describe('addCableBranch auto-grow', () => {
+  it('auto-grows handleCount when a wire connects to any handle', () => {
+    get().addCableBranch({ x: 0, y: 0 })
+    get().addConnector('A', 'DTM-2', 2, 5, 'BOOT', 0.5)
+    const br = get().cableBranches[0]
+    const terminal = get().connectors[0].terminals[0]
+    const initialCount = br.handleCount
+    get().addWire(terminal.id, `${br.id}_br_0`)
+    expect(get().cableBranches[0].handleCount).toBe(initialCount + 1)
+  })
+})
+
+describe('updateCableBranch', () => {
+  it('updates label', () => {
+    get().addCableBranch({ x: 0, y: 0 })
+    const id = get().cableBranches[0].id
+    get().updateCableBranch(id, { label: 'Y1' })
+    expect(get().cableBranches[0].label).toBe('Y1')
+  })
+})
+
+describe('injectCableThroughBranch', () => {
+  it('splits each wire in the cable at the branch point', () => {
+    get().addConnector('A', 'DTM-2', 2, 5, 'BOOT', 0.5)
+    get().addConnector('B', 'DTM-2', 2, 5, 'BOOT', 0.5)
+    get().addCableBranch({ x: 50, y: 0 })
+    get().addCable()
+
+    const [cA, cB] = get().connectors
+    const cable = get().cables[0]
+    const branch = get().cableBranches[0]
+
+    get().addWire(cA.terminals[0].id, cB.terminals[0].id)
+    const wireId = get().wires[0].id
+    get().assignWireToCable(wireId, cable.id)
+
+    get().injectCableThroughBranch(branch.id, cable.id)
+
+    // Original wire should now end at a branch handle
+    const orig = get().wires.find((w) => w.id === wireId)!
+    expect(orig.endTerminalId).toMatch(/_br_\d+$/)
+    expect(orig.cableId).toBe(cable.id)
+
+    // A new stub wire should start at a branch handle and end at cB.terminals[0]
+    const stub = get().wires.find((w) => w.id !== wireId)!
+    expect(stub.startTerminalId).toMatch(/_br_\d+$/)
+    expect(stub.endTerminalId).toBe(cB.terminals[0].id)
+    // Inject auto-creates an outgoing cable for the stub, so cableId is non-null
+    expect(stub.cableId).not.toBeNull()
+    expect(get().cables.length).toBe(2)  // original + 1 auto-created outgoing cable
+  })
+
+  it('re-points the downstream connector terminal to the new stub wire', () => {
+    get().addConnector('A', 'DTM-2', 2, 5, 'BOOT', 0.5)
+    get().addConnector('B', 'DTM-2', 2, 5, 'BOOT', 0.5)
+    get().addCableBranch({ x: 50, y: 0 })
+    get().addCable()
+
+    const [cA, cB] = get().connectors
+    const cable = get().cables[0]
+    const branch = get().cableBranches[0]
+
+    get().addWire(cA.terminals[0].id, cB.terminals[0].id)
+    const wireId = get().wires[0].id
+    get().assignWireToCable(wireId, cable.id)
+
+    get().injectCableThroughBranch(branch.id, cable.id)
+
+    const stub = get().wires.find((w) => w.id !== wireId)!
+    const bTerminal = get().connectors[1].terminals[0]
+    expect(bTerminal.wireId).toBe(stub.id)
+  })
+
+  it('merges stubs into the existing outgoing cable when a second cable is injected to the same destination', () => {
+    get().addConnector('Main', 'DTM-4', 4, 5, 'BOOT', 0.5)
+    get().addConnector('L', 'DTM-2', 2, 5, 'BOOT', 0.5)
+    get().addConnector('R', 'DTM-2', 2, 5, 'BOOT', 0.5)
+    get().addCableBranch({ x: 50, y: 0 })
+    get().addCable(); get().addCable()
+
+    const [cMain, cL, cR] = get().connectors
+    const [cableL, cableR] = get().cables
+    const branch = get().cableBranches[0]
+
+    get().addWire(cL.terminals[0].id, cMain.terminals[0].id)
+    get().addWire(cL.terminals[1].id, cMain.terminals[1].id)
+    get().addWire(cR.terminals[0].id, cMain.terminals[2].id)
+    get().addWire(cR.terminals[1].id, cMain.terminals[3].id)
+    get().assignWireToCable(get().wires[0].id, cableL.id)
+    get().assignWireToCable(get().wires[1].id, cableL.id)
+    get().assignWireToCable(get().wires[2].id, cableR.id)
+    get().assignWireToCable(get().wires[3].id, cableR.id)
+
+    get().injectCableThroughBranch(branch.id, cableL.id)
+    const cablesAfterFirst = get().cables.length  // should be 3 (L, R, L→Main)
+
+    get().injectCableThroughBranch(branch.id, cableR.id)
+    // R's stubs also go to Main → should merge into existing L→Main cable, not create a 4th
+    expect(get().cables.length).toBe(cablesAfterFirst)  // no new cable created
+    const outCable = get().cables.find((c) => c.id !== cableL.id && c.id !== cableR.id)!
+    expect(outCable.wireIds.length).toBe(4)  // 2 from L + 2 from R
+  })
+
+  it('grows branch handle count to cover new handles', () => {
+    get().addConnector('A', 'DTM-2', 2, 5, 'BOOT', 0.5)
+    get().addConnector('B', 'DTM-2', 2, 5, 'BOOT', 0.5)
+    get().addCableBranch({ x: 50, y: 0 })
+    get().addCable()
+
+    const [cA, cB] = get().connectors
+    const cable = get().cables[0]
+    const branch = get().cableBranches[0]
+    const initialHandles = branch.handleCount
+
+    get().addWire(cA.terminals[0].id, cB.terminals[0].id)
+    get().addWire(cA.terminals[1].id, cB.terminals[1].id)
+    get().assignWireToCable(get().wires[0].id, cable.id)
+    get().assignWireToCable(get().wires[1].id, cable.id)
+
+    get().injectCableThroughBranch(branch.id, cable.id)
+    expect(get().cableBranches[0].handleCount).toBeGreaterThan(initialHandles)
+  })
+})
+
+describe('reconnectWire', () => {
+  it('moves the end of a wire to a new terminal', () => {
+    get().addConnector('A', 'DTM-2', 2, 5, 'BOOT', 0.5)
+    get().addConnector('B', 'DTM-2', 2, 5, 'BOOT', 0.5)
+    const [cA, cB] = get().connectors
+    get().addWire(cA.terminals[0].id, cB.terminals[0].id)
+    const wireId = get().wires[0].id
+
+    get().reconnectWire(wireId, cB.terminals[0].id, cB.terminals[1].id)
+
+    expect(get().wires[0].endTerminalId).toBe(cB.terminals[1].id)
+  })
+
+  it('clears wireId on the old terminal and sets it on the new one', () => {
+    get().addConnector('A', 'DTM-2', 2, 5, 'BOOT', 0.5)
+    get().addConnector('B', 'DTM-2', 2, 5, 'BOOT', 0.5)
+    const [cA, cB] = get().connectors
+    get().addWire(cA.terminals[0].id, cB.terminals[0].id)
+    const wireId = get().wires[0].id
+
+    get().reconnectWire(wireId, cB.terminals[0].id, cB.terminals[1].id)
+
+    const updated = get().connectors[1]
+    expect(updated.terminals[0].wireId).toBeNull()
+    expect(updated.terminals[1].wireId).toBe(wireId)
+  })
+
+  it('rejects reconnect to a terminal already occupied by another wire', () => {
+    get().addConnector('A', 'DTM-2', 2, 5, 'BOOT', 0.5)
+    get().addConnector('B', 'DTM-2', 2, 5, 'BOOT', 0.5)
+    get().addConnector('C', 'DTM-2', 2, 5, 'BOOT', 0.5)
+    const [cA, cB, cC] = get().connectors
+    get().addWire(cA.terminals[0].id, cB.terminals[0].id)
+    get().addWire(cA.terminals[1].id, cC.terminals[0].id)
+    const wire1Id = get().wires[0].id
+
+    get().reconnectWire(wire1Id, cB.terminals[0].id, cC.terminals[0].id)
+
+    // Should still end at cB.terminals[0], not cC
+    expect(get().wires.find((w) => w.id === wire1Id)!.endTerminalId).toBe(cB.terminals[0].id)
+  })
+
+  it('can reconnect the start of a wire', () => {
+    get().addConnector('A', 'DTM-2', 2, 5, 'BOOT', 0.5)
+    get().addConnector('B', 'DTM-2', 2, 5, 'BOOT', 0.5)
+    const [cA, cB] = get().connectors
+    get().addWire(cA.terminals[0].id, cB.terminals[0].id)
+    const wireId = get().wires[0].id
+
+    get().reconnectWire(wireId, cA.terminals[0].id, cA.terminals[1].id)
+
+    expect(get().wires[0].startTerminalId).toBe(cA.terminals[1].id)
+    expect(get().connectors[0].terminals[0].wireId).toBeNull()
+    expect(get().connectors[0].terminals[1].wireId).toBe(wireId)
+  })
+
+  it('pushes a history entry', () => {
+    get().addConnector('A', 'DTM-2', 2, 5, 'BOOT', 0.5)
+    get().addConnector('B', 'DTM-2', 2, 5, 'BOOT', 0.5)
+    const [cA, cB] = get().connectors
+    get().addWire(cA.terminals[0].id, cB.terminals[0].id)
+    const before = get().past.length
+
+    get().reconnectWire(get().wires[0].id, cB.terminals[0].id, cB.terminals[1].id)
+    expect(get().past.length).toBe(before + 1)
+  })
+})
+
+describe('undo with cable branches', () => {
+  it('undo reverses addCableBranch', () => {
+    get().addCableBranch({ x: 0, y: 0 })
+    get().undo()
+    expect(get().cableBranches).toHaveLength(0)
   })
 })
 

@@ -20,7 +20,7 @@ export function GroundNodeComponent({ data, selected }: NodeProps<GroundFlowNode
     <div
       className={`ground-node${selected ? ' ground-node--selected' : ''}`}
       onClick={(e) => { e.stopPropagation(); select(data.id, 'ground') }}
-      title={`${data.label} — ${connectedCount} wire(s) connected`}
+      title={`${data.label} — chassis ground point. ${connectedCount} wire(s) connected. Each connected wire gets its own ring terminal to the chassis. New handle slots appear automatically.`}
     >
       {/* One handle slot per wire connection — grows as wires are added */}
       {Array.from({ length: data.handleCount }, (_, i) => {

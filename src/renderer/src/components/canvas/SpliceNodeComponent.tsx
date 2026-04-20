@@ -30,7 +30,7 @@ export function SpliceNodeComponent({ data, selected }: NodeProps<SpliceFlowNode
     <div
       className={`splice-node${selected ? ' splice-node--selected' : ''}`}
       onClick={(e) => { e.stopPropagation(); select(data.id, 'splice') }}
-      title={`Splice: ${data.label}`}
+      title={`${data.label} — electrical splice/junction. Wires connected here are permanently joined (crimp or solder). Appears on the BOM as a splice connector.`}
     >
       {handles.map(({ hid, isSource, pos, isConnected }) => (
         <Handle

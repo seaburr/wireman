@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo } from 'react'
+import { useCallback, useEffect, useMemo, useRef } from 'react'
 import {
   ReactFlow, Background, Controls, MiniMap,
   Connection, Edge, EdgeTypes, NodeChange, EdgeChange,
@@ -13,66 +13,76 @@ import { GroundNodeComponent, GroundFlowNode } from './GroundNodeComponent'
 import { FuseBlockNodeComponent, FuseBlockFlowNode } from './FuseBlockNodeComponent'
 import { PowerRailNodeComponent, PowerRailFlowNode } from './PowerRailNodeComponent'
 import { PowerBusNodeComponent, PowerBusFlowNode } from './PowerBusNodeComponent'
+import { CableBranchNodeComponent, CableBranchFlowNode } from './CableBranchNodeComponent'
 import { CableEdgeComponent } from './CableEdgeComponent'
 import { useHarnessStore } from '../../store'
-import { WIRE_COLORS, fuseBlockInHandle, fuseBlockOutHandle, powerRailPosHandle, powerRailNegHandle, powerBusInHandle, powerBusOutHandle } from '../../models'
+import { WIRE_COLORS, fuseBlockInHandle, fuseBlockOutHandle, powerRailPosHandle, powerRailNegHandle, powerBusInHandle, powerBusOutHandle, cableBranchHandleId } from '../../models'
 
 const nodeTypes: NodeTypes = {
-  connector: ConnectorNodeComponent,
-  splice:    SpliceNodeComponent,
-  ground:    GroundNodeComponent,
-  fuseBlock: FuseBlockNodeComponent,
-  powerRail: PowerRailNodeComponent,
-  powerBus:  PowerBusNodeComponent,
+  connector:   ConnectorNodeComponent,
+  splice:      SpliceNodeComponent,
+  ground:      GroundNodeComponent,
+  fuseBlock:   FuseBlockNodeComponent,
+  powerRail:   PowerRailNodeComponent,
+  powerBus:    PowerBusNodeComponent,
+  cableBranch: CableBranchNodeComponent,
 }
 
 const edgeTypes: EdgeTypes = {
   cable: CableEdgeComponent,
 }
 
-type AnyFlowNode = ConnectorFlowNode | SpliceFlowNode | GroundFlowNode | FuseBlockFlowNode | PowerRailFlowNode | PowerBusFlowNode
+type AnyFlowNode = ConnectorFlowNode | SpliceFlowNode | GroundFlowNode | FuseBlockFlowNode | PowerRailFlowNode | PowerBusFlowNode | CableBranchFlowNode
 
 /** Edge IDs for collapsed cables use this prefix so we can distinguish them. */
 const CABLE_EDGE_PREFIX = '__cable__'
 
 export function HarnessCanvas() {
   const {
-    connectors, wires, cables, splices, grounds, fuseBlocks, powerRails, powerBuses,
-    addWire, moveConnector, moveSplice, moveGround, moveFuseBlock, movePowerRail, movePowerBus,
-    removeWire, removeConnector, removeSplice, removeGround, removeFuseBlock, removePowerRail, removePowerBus,
+    connectors, wires, cables, splices, grounds, fuseBlocks, powerRails, powerBuses, cableBranches,
+    addWire, moveConnector, moveSplice, moveGround, moveFuseBlock, movePowerRail, movePowerBus, moveCableBranch,
+    removeWire, reconnectWire, removeConnector, removeSplice, removeGround, removeFuseBlock, removePowerRail, removePowerBus, removeCableBranch,
     select, selectedId, selectedType
   } = useHarnessStore(
     useShallow((s) => ({
-      connectors:       s.connectors,
-      wires:            s.wires,
-      cables:           s.cables,
-      splices:          s.splices,
-      grounds:          s.grounds,
-      fuseBlocks:       s.fuseBlocks,
-      powerRails:       s.powerRails,
-      powerBuses:       s.powerBuses,
-      addWire:          s.addWire,
-      moveConnector:    s.moveConnector,
-      moveSplice:       s.moveSplice,
-      moveGround:       s.moveGround,
-      moveFuseBlock:    s.moveFuseBlock,
-      movePowerRail:    s.movePowerRail,
-      movePowerBus:     s.movePowerBus,
-      removeWire:       s.removeWire,
-      removeConnector:  s.removeConnector,
-      removeSplice:     s.removeSplice,
-      removeGround:     s.removeGround,
-      removeFuseBlock:  s.removeFuseBlock,
-      removePowerRail:  s.removePowerRail,
-      removePowerBus:   s.removePowerBus,
-      select:           s.select,
-      selectedId:       s.selectedId,
-      selectedType:     s.selectedType
+      connectors:         s.connectors,
+      wires:              s.wires,
+      cables:             s.cables,
+      splices:            s.splices,
+      grounds:            s.grounds,
+      fuseBlocks:         s.fuseBlocks,
+      powerRails:         s.powerRails,
+      powerBuses:         s.powerBuses,
+      cableBranches:      s.cableBranches,
+      addWire:            s.addWire,
+      moveConnector:      s.moveConnector,
+      moveSplice:         s.moveSplice,
+      moveGround:         s.moveGround,
+      moveFuseBlock:      s.moveFuseBlock,
+      movePowerRail:      s.movePowerRail,
+      movePowerBus:       s.movePowerBus,
+      moveCableBranch:    s.moveCableBranch,
+      removeWire:         s.removeWire,
+      reconnectWire:      s.reconnectWire,
+      removeConnector:    s.removeConnector,
+      removeSplice:       s.removeSplice,
+      removeGround:       s.removeGround,
+      removeFuseBlock:    s.removeFuseBlock,
+      removePowerRail:    s.removePowerRail,
+      removePowerBus:     s.removePowerBus,
+      removeCableBranch:  s.removeCableBranch,
+      select:             s.select,
+      selectedId:         s.selectedId,
+      selectedType:       s.selectedType
     }))
   )
 
   const [rfNodes, setRfNodes, onRfNodesChange] = useNodesState<AnyFlowNode>([])
   const [rfEdges, setRfEdges, onRfEdgesChange] = useEdgesState<Edge>([])
+
+  // Track which edge is mid-reconnect so onEdgesChange doesn't fire removeWire prematurely.
+  // RF temporarily removes the edge from its state while the user drags the endpoint.
+  const reconnectingEdgeId = useRef<string | null>(null)
 
   // ── Derive nodes from store ──────────────────────────────────────────────
 
@@ -113,7 +123,13 @@ export function HarnessCanvas() {
       selected: selectedId === pb.id && selectedType === 'powerBus',
       data: pb
     })),
-  ], [connectors, splices, grounds, fuseBlocks, powerRails, powerBuses, selectedId, selectedType])
+    ...cableBranches.map((br): CableBranchFlowNode => ({
+      id: br.id, type: 'cableBranch' as const,
+      position: br.position,
+      selected: selectedId === br.id && selectedType === 'cableBranch',
+      data: br
+    })),
+  ], [connectors, splices, grounds, fuseBlocks, powerRails, powerBuses, cableBranches, selectedId, selectedType])
 
   // ── Derive edges from store ──────────────────────────────────────────────
 
@@ -141,9 +157,41 @@ export function HarnessCanvas() {
       handleToNode.set(powerBusInHandle(pb.id), pb.id)
       for (let i = 0; i < pb.outputCount; i++) handleToNode.set(powerBusOutHandle(pb.id, i), pb.id)
     }
+    for (const br of cableBranches) {
+      for (let i = 0; i < br.handleCount; i++) handleToNode.set(cableBranchHandleId(br.id, i), br.id)
+    }
 
-    // IDs of collapsed cables — their individual wire edges are suppressed
-    const collapsedIds = new Set(cables.filter((c) => c.collapsed).map((c) => c.id))
+    // IDs of CableBranch nodes — excluded when counting distinct endpoint nodes
+    const branchNodeIds = new Set(cableBranches.map((b) => b.id))
+
+    // IDs of collapsed cables whose wires all share ≤2 distinct non-branch nodes.
+    // Multi-destination cables (wires going to 3+ different connectors) are NOT
+    // suppressed — their individual wire edges remain visible to surface the issue.
+    const collapsedIds = new Set<string>()
+    for (const cable of cables) {
+      if (!cable.collapsed) continue
+      const cableWires = wires.filter((w) => w.cableId === cable.id && w.startTerminalId && w.endTerminalId)
+      if (cableWires.length === 0) continue
+      const nonBranchNodes = new Set<string>()
+      for (const w of cableWires) {
+        const s = handleToNode.get(w.startTerminalId!)
+        const t = handleToNode.get(w.endTerminalId!)
+        if (s && !branchNodeIds.has(s)) nonBranchNodes.add(s)
+        if (t && !branchNodeIds.has(t)) nonBranchNodes.add(t)
+      }
+      if (nonBranchNodes.size <= 2) {
+        collapsedIds.add(cable.id)
+      } else {
+        // More than 2 distinct endpoint nodes — valid only if a CableBranch mediates the fork
+        const hasBranch = cableWires.some((w) => {
+          const s = handleToNode.get(w.startTerminalId!)
+          const t = handleToNode.get(w.endTerminalId!)
+          return (s && branchNodeIds.has(s)) || (t && branchNodeIds.has(t))
+        })
+        if (hasBranch) collapsedIds.add(cable.id)
+        // else: fall through — individual wire edges remain visible
+      }
+    }
 
     // ── Individual wire edges (skip wires that belong to a collapsed cable) ──
     const wireEdges: Edge[] = wires
@@ -168,14 +216,16 @@ export function HarnessCanvas() {
           markerEnd: { type: MarkerType.ArrowClosed, color },
           labelStyle: { fontSize: 10, fill: '#e2e8f0' },
           labelBgStyle: { fill: '#2d3748', fillOpacity: 0.8 },
-          type: 'smoothstep'
+          type: 'smoothstep',
+          reconnectable: true,
         } as Edge]
       })
 
     // ── Collapsed cable edges ─────────────────────────────────────────────
     const cableEdges: Edge[] = []
     for (const cable of cables) {
-      if (!cable.collapsed) continue
+      // Only draw a cable edge for cables that are in collapsedIds (valid single-path cables)
+      if (!collapsedIds.has(cable.id)) continue
 
       const cableWires = wires.filter(
         (w) => w.cableId === cable.id && w.startTerminalId && w.endTerminalId
@@ -221,7 +271,7 @@ export function HarnessCanvas() {
     }
 
     return [...wireEdges, ...cableEdges]
-  }, [wires, cables, connectors, splices, grounds, fuseBlocks, powerRails, powerBuses, selectedId, selectedType])
+  }, [wires, cables, connectors, splices, grounds, fuseBlocks, powerRails, powerBuses, cableBranches, selectedId, selectedType])
 
   // Sync store → React Flow
   useEffect(() => { setRfNodes(storeNodes) }, [storeNodes, setRfNodes])
@@ -239,6 +289,7 @@ export function HarnessCanvas() {
           else if (fuseBlocks.some((f) => f.id === change.id)) moveFuseBlock(change.id, change.position)
           else if (powerRails.some((p) => p.id === change.id)) movePowerRail(change.id, change.position)
           else if (powerBuses.some((b) => b.id === change.id)) movePowerBus(change.id, change.position)
+          else if (cableBranches.some((b) => b.id === change.id)) moveCableBranch(change.id, change.position)
           else moveGround(change.id, change.position)
         }
         if (change.type === 'remove') {
@@ -248,25 +299,58 @@ export function HarnessCanvas() {
           else if (fuseBlocks.some((f) => f.id === change.id)) removeFuseBlock(change.id)
           else if (powerRails.some((p) => p.id === change.id)) removePowerRail(change.id)
           else if (powerBuses.some((b) => b.id === change.id)) removePowerBus(change.id)
+          else if (cableBranches.some((b) => b.id === change.id)) removeCableBranch(change.id)
         }
       }
     },
-    [onRfNodesChange, moveConnector, moveSplice, moveGround, moveFuseBlock, movePowerRail, movePowerBus,
-     removeConnector, removeSplice, removeGround, removeFuseBlock, removePowerRail, removePowerBus,
-     connectors, splices, grounds, fuseBlocks, powerRails, powerBuses]
+    [onRfNodesChange, moveConnector, moveSplice, moveGround, moveFuseBlock, movePowerRail, movePowerBus, moveCableBranch,
+     removeConnector, removeSplice, removeGround, removeFuseBlock, removePowerRail, removePowerBus, removeCableBranch,
+     connectors, splices, grounds, fuseBlocks, powerRails, powerBuses, cableBranches]
   )
 
   const onEdgesChange = useCallback(
     (changes: EdgeChange[]) => {
       onRfEdgesChange(changes)
       for (const change of changes) {
-        // Cable edges are marked deletable:false; guard anyway
         if (change.type === 'remove' && !change.id.startsWith(CABLE_EDGE_PREFIX)) {
+          // Skip: RF temporarily removes the edge while the user drags to reconnect
+          if (reconnectingEdgeId.current === change.id) continue
           removeWire(change.id)
         }
       }
     },
     [onRfEdgesChange, removeWire]
+  )
+
+  const onReconnectStart = useCallback(
+    (_: React.MouseEvent | React.TouchEvent, edge: Edge) => {
+      reconnectingEdgeId.current = edge.id
+    },
+    []
+  )
+
+  const onReconnect = useCallback(
+    (oldEdge: Edge, newConnection: Connection) => {
+      reconnectingEdgeId.current = null
+      if (oldEdge.id.startsWith(CABLE_EDGE_PREFIX)) return
+      if (!newConnection.sourceHandle || !newConnection.targetHandle) return
+      // Determine which end moved by comparing handles
+      if (newConnection.targetHandle !== oldEdge.targetHandle) {
+        reconnectWire(oldEdge.id, oldEdge.targetHandle!, newConnection.targetHandle)
+      } else if (newConnection.sourceHandle !== oldEdge.sourceHandle) {
+        reconnectWire(oldEdge.id, oldEdge.sourceHandle!, newConnection.sourceHandle)
+      }
+    },
+    [reconnectWire]
+  )
+
+  const onReconnectEnd = useCallback(
+    (_: MouseEvent | TouchEvent) => {
+      // Drop on empty space — clear the flag; store edge is unchanged so
+      // the next useEffect sync will restore it in RF's state.
+      reconnectingEdgeId.current = null
+    },
+    []
   )
 
   const onConnect = useCallback(
@@ -296,9 +380,10 @@ export function HarnessCanvas() {
       else if (fuseBlocks.some((f) => f.id === node.id)) select(node.id, 'fuseBlock')
       else if (powerRails.some((p) => p.id === node.id)) select(node.id, 'powerRail')
       else if (powerBuses.some((b) => b.id === node.id)) select(node.id, 'powerBus')
+      else if (cableBranches.some((b) => b.id === node.id)) select(node.id, 'cableBranch')
       else select(node.id, 'connector')
     },
-    [select, splices, grounds, fuseBlocks, powerRails, powerBuses]
+    [select, splices, grounds, fuseBlocks, powerRails, powerBuses, cableBranches]
   )
 
   const onPaneClick = useCallback(() => select(null, null), [select])
@@ -313,6 +398,9 @@ export function HarnessCanvas() {
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
+        onReconnect={onReconnect}
+        onReconnectStart={onReconnectStart}
+        onReconnectEnd={onReconnectEnd}
         onEdgeClick={onEdgeClick}
         onNodeClick={onNodeClick}
         onPaneClick={onPaneClick}

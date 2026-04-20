@@ -268,6 +268,20 @@ export interface PowerBus extends Record<string, unknown> {
   position: { x: number; y: number }
 }
 
+/**
+ * Cable branch / split point — a mechanical routing junction where one cable
+ * bundle divides into multiple outgoing cables (or vice-versa for a merge).
+ * This is NOT an electrical splice; wires pass through without being joined.
+ * Handle count auto-grows so there is always at least one spare connection.
+ */
+export interface CableBranch extends Record<string, unknown> {
+  id: string
+  label: string
+  /** Grows automatically as wires connect — always keep at least 1 spare */
+  handleCount: number
+  position: { x: number; y: number }
+}
+
 export function createFuseBlock(position: { x: number; y: number }): FuseBlock {
   return { id: nanoid(8), label: 'FUSE', circuits: 4, ampRatings: [10, 10, 10, 10], position }
 }
@@ -278,6 +292,14 @@ export function createPowerRail(position: { x: number; y: number }): PowerRail {
 
 export function createPowerBus(position: { x: number; y: number }): PowerBus {
   return { id: nanoid(8), label: 'PWR', outputCount: 2, position }
+}
+
+export function createCableBranch(position: { x: number; y: number }): CableBranch {
+  return { id: nanoid(8), label: 'SPLIT', handleCount: 3, position }
+}
+
+export function cableBranchHandleId(branchId: string, idx: number): string {
+  return `${branchId}_br_${idx}`
 }
 
 export function fuseBlockInHandle(fuseId: string): string { return `${fuseId}_in` }
@@ -336,7 +358,8 @@ function heatShrinkSizeFor(awg: string): { size: string; partNumber: string; cos
 export function generateBom(
   connectors: ConnectorNode[], wires: Wire[],
   cables: Cable[], splices: SpliceNode[], grounds: GroundNode[],
-  fuseBlocks: FuseBlock[] = [], powerRails: PowerRail[] = [], powerBuses: PowerBus[] = []
+  fuseBlocks: FuseBlock[] = [], powerRails: PowerRail[] = [], powerBuses: PowerBus[] = [],
+  cableBranches: CableBranch[] = []
 ): Bom {
   const lines: BomLine[] = []
 
@@ -416,6 +439,13 @@ export function generateBom(
       category: 'fuse' })
   }
 
+  // Cable branch wraps — one split-loom / tape wrap per branch point
+  if (cableBranches.length > 0) {
+    lines.push({ description: 'Cable Branch Wrap', partNumber: 'BRANCH-WRAP',
+      qty: cableBranches.length, unitCostUsd: 0.50,
+      totalCostUsd: cableBranches.length * 0.50, category: 'heatshrink' })
+  }
+
   // Heat shrink — 2 pieces per connected wire end, grouped by size
   const hshrinkGroups = new Map<string, { size: string; qty: number; costPer: number }>()
   for (const w of wires) {
@@ -464,7 +494,8 @@ export function generateBuildSteps(
   connectors: ConnectorNode[], wires: Wire[],
   cables: Cable[], splices: SpliceNode[], grounds: GroundNode[],
   projectName: string,
-  fuseBlocks: FuseBlock[] = [], powerRails: PowerRail[] = [], powerBuses: PowerBus[] = []
+  fuseBlocks: FuseBlock[] = [], powerRails: PowerRail[] = [], powerBuses: PowerBus[] = [],
+  cableBranches: CableBranch[] = []
 ): string {
   const lines: string[] = []
 
@@ -511,6 +542,13 @@ export function generateBuildSteps(
       powerBusHandleMap.set(powerBusOutHandle(pb.id, i), `${pb.label} Out ${i + 1}`)
     }
   }
+  // Cable branch handles: branchId_br_0, branchId_br_1, ...
+  const branchHandleMap = new Map<string, string>()
+  for (const br of cableBranches) {
+    for (let i = 0; i < br.handleCount; i++) {
+      branchHandleMap.set(cableBranchHandleId(br.id, i), br.label || 'SPLIT')
+    }
+  }
 
   function resolveEndpoint(handleId: string | null): string {
     if (!handleId) return 'unconnected'
@@ -526,6 +564,8 @@ export function generateBuildSteps(
     if (p) return p
     const b = powerBusHandleMap.get(handleId)
     if (b) return b
+    const br = branchHandleMap.get(handleId)
+    if (br) return `${br} (branch)`
     return 'unconnected'
   }
 
@@ -701,6 +741,38 @@ export function generateBuildSteps(
     lines.push('')
   }
 
+  // Cable branch points
+  for (const br of cableBranches) {
+    lines.push(box(`Cable Branch – ${br.label || 'SPLIT'}`))
+    lines.push('')
+    const brWires = wires.filter(
+      (w) =>
+        (w.startTerminalId && branchHandleMap.has(w.startTerminalId)) ||
+        (w.endTerminalId && branchHandleMap.has(w.endTerminalId))
+    )
+    // Group wires by cable to show bundle membership
+    const byArm = new Map<string, typeof brWires>()
+    for (const w of brWires) {
+      const key = w.cableId ?? '__loose__'
+      if (!byArm.has(key)) byArm.set(key, [])
+      byArm.get(key)!.push(w)
+    }
+    for (const [cableId, armWires] of byArm.entries()) {
+      const cable = cableId !== '__loose__' ? cables.find((c) => c.id === cableId) : null
+      const armLabel = cable ? `  [${cable.name}, ${fmtLen(cable.lengthInches)}]` : '  [loose wires]'
+      lines.push(armLabel)
+      for (const w of armWires) {
+        const len = cable ? cable.lengthInches : w.lengthInches
+        const otherEndId = branchHandleMap.has(w.startTerminalId ?? '')
+          ? w.endTerminalId
+          : w.startTerminalId
+        lines.push(`    ${w.name}, ${w.color}, ${w.awg} AWG, ${fmtLen(len)} → ${resolveEndpoint(otherEndId)}`)
+      }
+    }
+    if (brWires.length === 0) lines.push('  [no wires connected]')
+    lines.push('')
+  }
+
   return lines.join('\n')
 }
 
@@ -713,7 +785,8 @@ export interface ValidationIssue {
 
 export function validateHarness(
   connectors: ConnectorNode[], wires: Wire[], splices: SpliceNode[], grounds: GroundNode[],
-  fuseBlocks: FuseBlock[] = [], powerRails: PowerRail[] = [], powerBuses: PowerBus[] = []
+  fuseBlocks: FuseBlock[] = [], powerRails: PowerRail[] = [], powerBuses: PowerBus[] = [],
+  cableBranches: CableBranch[] = [], cables: Cable[] = []
 ): ValidationIssue[] {
   void fuseBlocks; void powerRails; void powerBuses // reserved for future circuit validation
   const issues: ValidationIssue[] = []
@@ -732,6 +805,55 @@ export function validateHarness(
     if (unconnected > 0)
       issues.push({ severity: 'warning',
         message: `Connector "${c.name}" has ${unconnected} unconnected pin(s).` })
+  }
+
+  // Check cables for multi-destination wires (physically requires a Cable Branch)
+  if (cables.length > 0) {
+    const branchIds = new Set(cableBranches.map((b) => b.id))
+
+    // Build handleToNode so we can resolve wire endpoints to node IDs
+    const h2n = new Map<string, string>()
+    for (const c of connectors) { for (const t of c.terminals) h2n.set(t.id, c.id) }
+    for (const s of splices) { for (let i = 0; i < s.handleCount; i++) h2n.set(`${s.id}_${i}`, s.id) }
+    for (const g of grounds) { for (let i = 0; i < g.handleCount; i++) h2n.set(`${g.id}_gnd_${i}`, g.id) }
+    for (const b of cableBranches) { for (let i = 0; i < b.handleCount; i++) h2n.set(`${b.id}_br_${i}`, b.id) }
+    for (const fb of fuseBlocks) {
+      h2n.set(`${fb.id}_in`, fb.id)
+      for (let i = 0; i < fb.circuits; i++) h2n.set(`${fb.id}_out_${i}`, fb.id)
+    }
+    for (const pr of powerRails) { h2n.set(`${pr.id}_pwr_0`, pr.id); h2n.set(`${pr.id}_pwr_1`, pr.id) }
+    for (const pb of powerBuses) {
+      h2n.set(`${pb.id}_bus_in`, pb.id)
+      for (let i = 0; i < pb.outputCount; i++) h2n.set(`${pb.id}_bus_${i}`, pb.id)
+    }
+
+    for (const cable of cables) {
+      const cableWires = wires.filter((w) => w.cableId === cable.id && w.startTerminalId && w.endTerminalId)
+      if (cableWires.length === 0) continue
+
+      const nonBranchNodes = new Set<string>()
+      for (const w of cableWires) {
+        const src = h2n.get(w.startTerminalId!)
+        const tgt = h2n.get(w.endTerminalId!)
+        if (src && !branchIds.has(src)) nonBranchNodes.add(src)
+        if (tgt && !branchIds.has(tgt)) nonBranchNodes.add(tgt)
+      }
+
+      if (nonBranchNodes.size > 2) {
+        // A CableBranch in the cable legitimises the fork — only flag if no branch is present
+        const hasBranch = cableWires.some((w) => {
+          const src = h2n.get(w.startTerminalId!)
+          const tgt = h2n.get(w.endTerminalId!)
+          return (src && branchIds.has(src)) || (tgt && branchIds.has(tgt))
+        })
+        if (!hasBranch) {
+          issues.push({
+            severity: 'error',
+            message: `Cable "${cable.name}" has wires going to ${nonBranchNodes.size} different endpoints — split into separate cables or route through a Cable Branch.`,
+          })
+        }
+      }
+    }
   }
 
   return issues
