@@ -74,6 +74,16 @@ jobs:
         with:
           path: artifacts
 
+      # Wipe stale assets so version-stamped filenames don't accumulate
+      - name: Clear existing nightly assets
+        run: |
+          gh release view nightly --repo ${{ github.repository }} --json assets \
+            --jq '.assets[].name' 2>/dev/null \
+            | xargs -r -I {} gh release delete-asset nightly {} \
+                --repo ${{ github.repository }} --yes || true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - uses: softprops/action-gh-release@v2
         with:
           tag_name: nightly
@@ -87,6 +97,25 @@ jobs:
           files: |
             artifacts/wireman-mac/*.dmg
             artifacts/wireman-win/*.exe
+
+  # Keep only the 3 most recent pre-releases; delete anything older
+  cleanup-old-nightlies:
+    if: github.ref == 'refs/heads/main'
+    needs: [release-nightly]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Delete pre-releases beyond the last 3
+        run: |
+          gh release list --repo ${{ github.repository }} --limit 100 \
+            --json tagName,isPrerelease,createdAt \
+            --jq '[.[] | select(.isPrerelease)] | sort_by(.createdAt) | reverse | .[3:] | .[].tagName' \
+            | xargs -r -I {} sh -c \
+              'gh release delete "{}" --repo ${{ github.repository }} --yes \
+               && git push origin :refs/tags/"{}" || true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   # On tagged releases, publish a proper stable GitHub Release
   release:
